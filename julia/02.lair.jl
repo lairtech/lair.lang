@@ -23,7 +23,7 @@ function lairRepl()
         end
         expr = parseExpr(input)
         if expr === nothing
-            println("Unkown expression: $input")
+            println("Unkown expression string: \"$input\"")
             continue
         end
         result  = evalExpr(expr)
