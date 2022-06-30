@@ -11,7 +11,13 @@ function evalExpr(expr)
 end
 
 function printExpr(expr)
-    println(expr)
+    if expr == true
+        println("true")
+    elseif expr == false
+        println("false")
+    else
+        println("Unkown expression: $expr")
+    end
 end
 
 function lairRepl()
@@ -23,7 +29,7 @@ function lairRepl()
         end
         expr = parseExpr(input)
         if expr === nothing
-            println("Unkown expression string: \"$input\"")
+            println("Unable to parse expression: \"$input\"")
             continue
         end
         result  = evalExpr(expr)
