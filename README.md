@@ -27,3 +27,21 @@ The `lairRepl` function for the interactive skeleton interpreter itself do the f
    * print the evaluated expression with `printExp`
    * repeat from beginnig
 
+## Step 02: Booleans
+General purpose languages consists of primitive types, compound types and means of abstraction.For now we will just deal with one of the simples primitive types: `Booleans`. 
+They are so simple because they just conists of 2 the states `true` and `false` and like all primitive types evaluate to themself which make evaluation just like before the identity function.
+
+Also Parsing will be simple because we can just match the input string against `true` or `false` and convert that to a boolean type and treat all other input as unkown expressions.
+Printing will equally be simple. Just print `true` for `true` booleans and `false` for `false` booleans.
+
+So in conlusion the grammer for our boolean language is
+```
+Program -> Boolean
+Boolean -> "true" | "false"
+```
+And the abstract expressions just consists of Booleans
+```
+Expression = Boolean
+Boolean = true | false
+```
+

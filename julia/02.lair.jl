@@ -1,12 +1,16 @@
-function parseExp(input::String)
-    input
+function parseExpr(input::String)
+    if input == "true"
+        return true
+    elseif input == "false"
+        return false
+    end
 end
 
-function evalExp(expr)
+function evalExpr(expr)
     expr
 end
 
-function printExp(expr)
+function printExpr(expr)
     println(expr)
 end
 
@@ -17,8 +21,12 @@ function lairRepl()
         if input == "exit"
             return
         end
-        expr = parseExp(input)
-        result  = evalExp(expr)
-        printExp(result)
+        expr = parseExpr(input)
+        if expr === nothing
+            println("Unkown expression: $input")
+            continue
+        end
+        result  = evalExpr(expr)
+        printExpr(result)
     end
 end
