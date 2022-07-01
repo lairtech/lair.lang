@@ -45,3 +45,15 @@ Expression = Boolean
 Boolean = true | false
 ```
 
+## Step 03: PEG Recognizer
+Our approach to parsing, evaluation und printing for the `Boolean` language is nice and simple. But even just adding integers to our `Boolean` language would need a more sophisticated parser than just the string matcher logic we have for now. So let's write a simple PEG (Parsing Expression Grammer) Recognizer for our `Boolean` language that for now will just recoginze literal string. In our case `true` and `false`
+
+To do so we write a `match` function that takes a `Pattern`, an input string and an index where in the sring to start matching the against the pattern. The function will just return the index position after the matched `Pattern` or nothing.
+
+For parsing `Boolean`s we just need 2 `Pattern`s:
+* `Literal` will hold a string that will literaly be matched against the input string at the actual index position and returns the index + length of the matched string
+* `OrderedChoice` will hold multiple `Pattern` in order and try to match them one at a time against the input string at the index position. The first `Pattern` that matches will be the result of the `OrderedChoice`
+
+With just that 2 Patterns and the `match` functions we can implement out PEG recognizer for `Boolean`s that will return the index until it matched or nothing. If we matched nothing we just return nothing from the `parseExpr` function. If we matched something we will check if the index is after the last index of the input string. Later on we will properly improve the match function to support hole or nothing matches but for now that is enough.
+
+For convenience we may use operator overloading and pattern constructing functions to make a small PEG dsl grammer that is better readable.
