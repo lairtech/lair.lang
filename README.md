@@ -57,3 +57,5 @@ For parsing `Boolean`s we just need 2 `Pattern`s:
 With just that 2 Patterns and the `match` functions we can implement out PEG recognizer for `Boolean`s that will return the index until it matched or nothing. If we matched nothing we just return nothing from the `parseExpr` function. If we matched something we will check if the index is after the last index of the input string. Later on we will properly improve the match function to support hole or nothing matches but for now that is enough.
 
 For convenience we may use operator overloading and pattern constructing functions to make a small PEG dsl grammer that is better readable.
+
+## Step 04: PEG Parser
