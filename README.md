@@ -59,3 +59,14 @@ With just that 2 Patterns and the `match` functions we can implement out PEG rec
 For convenience we may use operator overloading and pattern constructing functions to make a small PEG dsl grammer that is better readable.
 
 ## Step 04: PEG Parser
+Until now we just had developed a small PEG regonizer but what we actually want is parser that will return an abstract synatx tree with the right datatypes instead of just the matched index. So we first extend our results of the match functions to return 2 things, the index as before and the new capture. 
+
+Then we introduce a `Capture` pattern that just hold a pattern. The match function for the `Capture` just remembers the start index and then matches the pattern and when it's a successful match it will return the index and the actual matched String from the start index until the end index (that it also will return).
+
+So now we have the possiblity to extract the relevant text for our parser with the `Capture` patterns. But they are still just strings so let's add another pattern `Transform` that holds a pattern and a tranformation function. The match function for the transform pattern just matchs the pattern and if it matches and also have a caputre it will apply the transformation function to the capture.
+
+We can now rewrite our `booleanPattern = "true" + "false"` to a pattern that capture the true/false and then transform it into a boolean value with the following pattern `booleanPattern = c("true" + "false") / m -> m == "true"` and reduce the `parseExp` function just to a call to match function and return the capture if there is a match otherwise we return nothing.
+
+
+
+

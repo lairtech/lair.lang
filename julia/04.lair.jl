@@ -3,7 +3,7 @@ abstract type Pattern end
 function pattern(pattern::Pattern)
     pattern
 end
-
+            
 function match(anyPattern::Any, text::String, i::Integer=1)
     match(pattern(anyPattern), text, i)
 end
@@ -20,7 +20,7 @@ end
 
 function match(literal::Literal, text::String, i::Integer = 1)
     if length(text) >= i &&  startswith(text[i:end], literal.value)
-        i + length(literal.value)
+        i + length(literal.value), nothing
     end
 end
 
@@ -54,15 +54,57 @@ function Base.:(+)(choice1::OrderedChoice, choice2::OrderedChoice)
     OrderedChoice(append!(deepcopy(choice1.patterns), choice2.patterns))
 end
 
+struct Capture <: Pattern
+    pattern::Pattern
+end
 
-booleanPattern = "true" + "false" # matches either "true" or "false"
+function capture(pattern::Pattern)
+    Capture(pattern)
+end
 
-function parseExpr(input::String)
-    matchIndex = match(booleanPattern, input)
-    if matchIndex === nothing || length(input) >= matchIndex
+c(pattern::Pattern) = capture(pattern::Pattern)
+
+function match(capture::Pattern, text::String, i::Integer = 1)
+    start = i
+    result = match(capture.pattern, text, i)
+    if result === nothing
         return nothing
     end
-    input == "true"
+    index, caputure = result
+    return index, text[start:index-1]
+end
+
+struct Transform <: Pattern
+    pattern::Pattern
+    fun::Function
+end
+
+
+function match(transform::Transform, text::String, i::Integer = 1)
+    result = match(transform.pattern, text, i)
+    if result === nothing
+        return nothing
+    end
+    index, capture = result
+    if capture !== nothing 
+        capture = transform.fun(capture)
+    end
+    index, capture
+end
+ 
+function Base.:(/)(pattern::Pattern, fun::Function)
+    Transform(pattern, fun)
+end
+
+booleanPattern = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
+
+function parseExpr(input::String)
+    matchedExpr = match(booleanPattern, input)
+    if matchedExpr === nothing
+        return nothing
+    end
+    index, capture = matchedExpr
+    capture
 end
 
 function evalExpr(expr)
