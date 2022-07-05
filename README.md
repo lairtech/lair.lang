@@ -68,11 +68,17 @@ So now we have the possiblity to extract the relevant text for our parser with t
 We can now rewrite our `booleanPattern = "true" + "false"` to a pattern that capture the true/false and then transform it into a boolean value with the following pattern `booleanPattern = c("true" + "false") / m -> m == "true"` and reduce the `parseExp` function just to a call to match function and return the capture if there is a match otherwise we return nothing.
 
 ## Step 05: Integers
-The next primitive Type we will add are 64 bit integers. For that we need to extend our PEG Parser to support character ranges, repeat/optional and sequence patterns. Implementing the `CharRange` Pattern is easy. It just hold the min char and the max char the match function just checks if the text length is still in range of the actual index and then checks if the char at that index is >= min char and <= max char. If so it returns the actual index + 1 otherwise `nothing` as usual.
+The next primitive type we will add are 64 bit integers. For that we need to extend our PEG Parser to support character ranges, repeat/optional and sequence patterns. 
+
+Implementing the `CharRange` Pattern is easy. It just hold the min char and the max char. The match function just checks if the text length is still in range of the actual index and then checks if the char at that index is >= min char and <= max char. If so it returns the actual index + 1 otherwise `nothing` as usual.
+
 Implementing the `Repeat` patterns are a bit harder. It holds a count and the pattern that will be checked for the repeats. Counts >= 0 must match the pattern repeatendly at least the count times but can match arbitary more times the pattern. While counts < 0 will optionally match the pattern up to the negativ count. Regex whise is a `count = 0` = `pattern*`, `count > 0` = `pattern^count*pattern*` and `count < 0` = `(pattern?)^count`.
+
 The last bit we need is a `Sequence` pattern that allowes us to make a sequential list of patterns that must match one after the other. The `Sequence`pattern hold just that sequential list and test one pattern after the other, only if all match it will return a match. Otherwise `nothing`.
+
 With that 3 additional pattern we can now express integers with or without a leading sign and convert the caputed integer string to and `Int64` with some operator overloading like:
 `integerPattern = c(("-" + "+") % -1 * range('0', '9') % 1) / i -> parse(Int64, i)`
+
 The last bit of changes to support also integers in the interpreter is to combine the `booleanPattern` and `integerPattern` with an `OrderedChoice` like `primitivePattern = booleanPattern + integerPattern` and use that now in the `parsingExp`. We may also need to change the `printExp` to handle integer printing.
 
 
