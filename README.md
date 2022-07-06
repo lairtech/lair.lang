@@ -77,9 +77,21 @@ Implementing the `Repeat` patterns are a bit harder. It holds a count and the pa
 The last bit we need is a `Sequence` pattern that allowes us to make a sequential list of patterns that must match one after the other. The `Sequence`pattern hold just that sequential list and test one pattern after the other, only if all match it will return a match. Otherwise `nothing`.
 
 With that 3 additional pattern we can now express integers with or without a leading sign and convert the caputed integer string to and `Int64` with some operator overloading like:
-`integerPattern = c(("-" + "+") % -1 * range('0', '9') % 1) / i -> parse(Int64, i)`
+`integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i)`
 
 The last bit of changes to support also integers in the interpreter is to combine the `booleanPattern` and `integerPattern` with an `OrderedChoice` like `primitivePattern = booleanPattern + integerPattern` and use that now in the `parsingExp`. We may also need to change the `printExp` to handle integer printing.
+
+## Step 06 - Strings
+String will be represented with `"` as delimiter and also have the usual escapes sequences like `\"`, `\n` etc. So we use an PEG sequence to match the beginning and ending `"`. But the string content in between can be any char except `"` or `\` or the escape sequences `\n`, `\r`, `\t`, `\\` and `\"` with is the escaped `"` and will not be confused with the string ending.
+
+To do that we extend our PEG parser with an `AnyChar` pattern that will hold the count of the characters to match. If positive we match the exact count of any character otherwise we return `nothing`. If the count is negative we match only there are -count character left.
+We also will introduce a `Negate` pattern that holds a pattern and only matches if the pattern doesn't match. It will not consume any input on a match. For convenience we will overload overload the `pattern1 - pattern2` that will be translated to a `Sequence` with a `Negate` with pattern2 followed by pattern1.
+
+Also enabled simple capture transfering support in the sequence to support the stringPattern:
+```
+stringEscapePattern = p("\\\"") + p("\\\\") + p("\\n") + p("\\r") + p("\\t")
+stringPattern = "\"" * c((stringEscapePattern + (1 - (p("\"") + p("\\")))) ^ 0) * "\""
+```
 
 
 
