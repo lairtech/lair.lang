@@ -93,6 +93,7 @@ stringEscapePattern = p("\\\"") + p("\\\\") + p("\\n") + p("\\r") + p("\\t")
 stringPattern = "\"" * c((stringEscapePattern + (1 - (p("\"") + p("\\")))) ^ 0) * "\""
 ```
 
+And of course to support the printing of the strings we extended the `printExp` with string support.
 
 
 
