@@ -116,7 +116,7 @@ struct Repeat <: Pattern
     count::Integer
 end
 
-function Base.:(%)(pattern::Pattern, count::Integer)
+@inline function Base.literal_pow(f::typeof(^), pattern::Pattern, ::Val{count}) where {count}
     Repeat(pattern, count)
 end
 
@@ -136,7 +136,7 @@ function match(repeat::Repeat, text::String, i::Integer = 1)
         while true
             restResult = match(repeat.pattern, text, index)
             if restResult === nothing
-                return result
+                return result === nothing ? (index, nothing) : result
             end
             result = restResult
             index = result[1]
@@ -145,15 +145,11 @@ function match(repeat::Repeat, text::String, i::Integer = 1)
         while count < 0
             upToResult = match(repeat.pattern, text, index)
             if upToResult === nothing 
-                if result === nothing
-                    return index, nothing
-                else
-                    return result
-                end
+                return result === nothing ? (index, nothing) : result
             end
-            result = upToResult
-            count = count + 1
+            result = upToResult            
             index = result[1]
+            count = count + 1
         end
         result
     end
@@ -195,7 +191,7 @@ function match(sequence::Sequence, text::String, i::Integer = 1)
 end
 
 booleanPattern = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
-integerPattern = c(("-" + "+") % -1 * range('0', '9') % 1) / i -> parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
+integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
 primitivePattern = booleanPattern + integerPattern
 
 function parseExpr(input::String)
