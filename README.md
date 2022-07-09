@@ -11,9 +11,9 @@ Each julia implemenation for the steps can be found under `julia/<chapter>/<step
 If you just use the step descriptions to build up your own implementation it's properly wise to follow the rought order but feel free to skip around as you please.
 
 ## 01 - Skeleton Interpreter
-### Step 01: The REPL
-To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input just echo it back to the user. 
+To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
 
+### Step 01: The REPL
 Really nothing fancy but it already consists of the 3 dummy functions that will later be modified/extended:
 * parseExp: Parses the given input string
 * evalExp: Evaluates the the parsed expression
