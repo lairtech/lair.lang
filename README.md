@@ -6,11 +6,11 @@ Each of the steps for building up a language will be small and incrementally bui
 
 Also after each step we have a working interpreter for the language build up so far.
 
-Each julia implemenation for the steps can be found under `julia/<chapter>/<step-number>.lair.jl`
+Each julia implemenation for the steps can be found under `julia/<chapter-number>/<step-number>.lair.jl`
 
 If you just use the step descriptions to build up your own implementation it's properly wise to follow the rought order but feel free to skip around as you please.
 
-## 01 - Skeleton Interpreter
+## Chapter 01 - Skeleton Interpreter
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
 
 ### Step 01: The REPL
@@ -28,7 +28,7 @@ The `lairRepl` function for the interactive skeleton interpreter itself do the f
    * print the evaluated expression with `printExp`
    * repeat from beginnig
 
-## 02 - Selfevaluating Primitive Types & Simple PEG Parser
+## Chapter 02 - Selfevaluating Primitive Types & Simple PEG Parser
 General purpose languages consists of primitive types, compound/composite types and means of abstraction. To keep things as simple as possible for now we will first implement all the basic selfevaluation primitive types. That way we don't need to deal with different evaluation rules and can just pass through the types in the eval function (identity function) and only need to touch the parsing and printing functions. If the implementation language you are using don't support the type, it may not be a bad idea to just follow along the parsing stuff and later on when we handle types more thoughfully revisit that step. 
 
 While we add more and more primitive types we will also develop a simple PEG parser along it that we extend bit by bit to match the needed parsing features we need. At the end of it all the parsing we should have a PEG parser, that is basically just a configureable recrusive decent parser that could also be used, extendend or improved for other needs besides this project.
