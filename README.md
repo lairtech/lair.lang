@@ -113,9 +113,9 @@ And of course to support the printing of the strings we extended the `printExp` 
 
 PEG dsl grammer for the language up so far:
 ```julia
-booleanPattern = c("true" + "false") / m -> m == "true"
+booleanPattern = c("true" + "false") / m -> m == "true" 
 integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) 
-stringEscapePattern = p("\\\"") + p("\\\\") + p("\\n") + p("\\r") + p("\\t")
-stringPattern = "\"" * c((stringEscapePattern + (1 - (p("\"") + p("\\")))) ^ 0) * "\""
+stringEscapePattern = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" 
+stringPattern = "\"" * c((stringEscapePattern + (1 - ("\"" + "\\"))) ^ 0) * "\"" 
 primitivePattern = booleanPattern + integerPattern + stringPattern
 ```
