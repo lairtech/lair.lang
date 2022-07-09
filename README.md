@@ -1,16 +1,17 @@
 # Lair Language
-The breeding ground for incrementaly building a language from scratch step by step. The implementation language for the reference implementation will be Julia for now. Others may follow.
+The breeding ground for incrementally building a language from scratch step by step implemented in Julia.
 
 # Incremental Steps
 Each of the steps for building up a language will be small and incrementally build on the previous steps. Each of those steps will deal with one concept or a few cut down concepts needed to solve the actual problem. Some steps will generalize the problems that where solved in previous steps to make the implementation and/or the language more flexible.
 
-Also after each step we have a working interpreter for build up language so far.
+Also after each step we have a working interpreter for the language build up so far.
 
-Each julia implemenation for the step can be found under `julia/<step-numer>.lair.jl`
+Each julia implemenation for the steps can be found under `julia/<chapter>/<step-number>.lair.jl`
 
 If you just use the step descriptions to build up your own implementation it's properly wise to follow the rought order but feel free to skip around as you please.
 
-## Step 01: The REPL
+## 01 - Skeleton Interpreter
+### Step 01: The REPL
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input just echo it back to the user. 
 
 Really nothing fancy but it already consists of the 3 dummy functions that will later be modified/extended:
@@ -27,11 +28,13 @@ The `lairRepl` function for the interactive skeleton interpreter itself do the f
    * print the evaluated expression with `printExp`
    * repeat from beginnig
 
-## Step 02: Booleans
-General purpose languages consists of primitive types, compound types and means of abstraction.For now we will just deal with one of the simples primitive types: `Booleans`. 
-They are so simple because they just conists of 2 the states `true` and `false` and like all primitive types evaluate to themself which make evaluation just like before the identity function.
+## 02 - Selfevaluating Primitive Types & Simple PEG Parser
+General purpose languages consists of primitive types, compound/composite types and means of abstraction. To keep things as simple as possible for now we will first implement all the basic selfevaluation primitive types. That way we don't need to deal with different evaluation rules and can just pass through the types in the eval function (identity function) and only need to touch the parsing and printing functions. If the implementation language you are using don't support the type, it may not be a bad idea to just follow along the parsing stuff and later on when we handle types more thoughfully revisit that step. 
 
-Also Parsing will be simple because we can just match the input string against `true` or `false` and convert that to a boolean type and treat all other input as unkown expressions.
+While we add more and more primitive types we will also develop a simple PEG parser along it that we extend bit by bit to match the needed parsing features we need. At the end of it all the parsing we should have a PEG parser, that is basically just a configureable recrusive decent parser that could also be used, extendend or improved for other needs besides this project.
+
+### Step 02: Booleans
+The first primitive type we will implement is the `Boolean` type because it's one of the simplest ones from a parsing and printing perspective. Because they just conists of 2 the states `true` and `false` the parsing boils down to match against the strings `true` or `false` and convert that to a boolean type and treat all other input as unkown expressions.
 Printing will equally be simple. Just print `true` for `true` booleans and `false` for `false` booleans.
 
 So in conlusion the grammer for our boolean language is
@@ -45,7 +48,7 @@ Expression = Boolean
 Boolean = true | false
 ```
 
-## Step 03: PEG Recognizer
+### Step 03: PEG Recognizer
 Our approach to parsing, evaluation und printing for the `Boolean` language is nice and simple. But even just adding integers to our `Boolean` language would need a more sophisticated parser than just the string matcher logic we have for now. So let's write a simple PEG (Parsing Expression Grammer) Recognizer for our `Boolean` language that for now will just recoginze literal string. In our case `true` and `false`
 
 To do so we write a `match` function that takes a `Pattern`, an input string and an index where in the sring to start matching the against the pattern. The function will just return the index position after the matched `Pattern` or nothing.
@@ -56,9 +59,14 @@ For parsing `Boolean`s we just need 2 `Pattern`s:
 
 With just that 2 Patterns and the `match` functions we can implement out PEG recognizer for `Boolean`s that will return the index until it matched or nothing. If we matched nothing we just return nothing from the `parseExpr` function. If we matched something we will check if the index is after the last index of the input string. Later on we will properly improve the match function to support hole or nothing matches but for now that is enough.
 
-For convenience we may use operator overloading and pattern constructing functions to make a small PEG dsl grammer that is better readable.
+For convenience we may use operator overloading and pattern constructing functions to make a small PEG dsl grammer that is better readable. 
 
-## Step 04: PEG Parser
+PEG dsl grammer for the language up so far:
+```julia
+booleanPattern = "true" + "false"
+```
+
+### Step 04: PEG Parser
 Until now we just had developed a small PEG regonizer but what we actually want is parser that will return an abstract synatx tree with the right datatypes instead of just the matched index. So we first extend our results of the match functions to return 2 things, the index as before and the new capture. 
 
 Then we introduce a `Capture` pattern that just hold a pattern. The match function for the `Capture` just remembers the start index and then matches the pattern and when it's a successful match it will return the index and the actual matched String from the start index until the end index (that it also will return).
@@ -67,7 +75,12 @@ So now we have the possiblity to extract the relevant text for our parser with t
 
 We can now rewrite our `booleanPattern = "true" + "false"` to a pattern that capture the true/false and then transform it into a boolean value with the following pattern `booleanPattern = c("true" + "false") / m -> m == "true"` and reduce the `parseExp` function just to a call to match function and return the capture if there is a match otherwise we return nothing.
 
-## Step 05: Integers
+PEG dsl grammer for the language up so far:
+```julia
+booleanPattern = c("true" + "false") / m -> m == "true"
+```
+
+### Step 05: Integers
 The next primitive type we will add are 64 bit integers. For that we need to extend our PEG Parser to support character ranges, repeat/optional and sequence patterns. 
 
 Implementing the `CharRange` Pattern is easy. It just hold the min char and the max char. The match function just checks if the text length is still in range of the actual index and then checks if the char at that index is >= min char and <= max char. If so it returns the actual index + 1 otherwise `nothing` as usual.
@@ -81,19 +94,28 @@ With that 3 additional pattern we can now express integers with or without a lea
 
 The last bit of changes to support also integers in the interpreter is to combine the `booleanPattern` and `integerPattern` with an `OrderedChoice` like `primitivePattern = booleanPattern + integerPattern` and use that now in the `parsingExp`. We may also need to change the `printExp` to handle integer printing.
 
-## Step 06 - Strings
+PEG dsl grammer for the language up so far:
+```julia
+booleanPattern = c("true" + "false") / m -> m == "true"
+integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i)
+primitivePattern = booleanPattern + integerPattern
+```
+
+### Step 06 - Strings
 String will be represented with `"` as delimiter and also have the usual escapes sequences like `\"`, `\n` etc. So we use an PEG sequence to match the beginning and ending `"`. But the string content in between can be any char except `"` or `\` or the escape sequences `\n`, `\r`, `\t`, `\\` and `\"` with is the escaped `"` and will not be confused with the string ending.
 
 To do that we extend our PEG parser with an `AnyChar` pattern that will hold the count of the characters to match. If positive we match the exact count of any character otherwise we return `nothing`. If the count is negative we match only there are -count character left.
 We also will introduce a `Negate` pattern that holds a pattern and only matches if the pattern doesn't match. It will not consume any input on a match. For convenience we will overload overload the `pattern1 - pattern2` that will be translated to a `Sequence` with a `Negate` with pattern2 followed by pattern1.
 
-Also enabled simple capture transfering support in the sequence to support the stringPattern:
-```
-stringEscapePattern = p("\\\"") + p("\\\\") + p("\\n") + p("\\r") + p("\\t")
-stringPattern = "\"" * c((stringEscapePattern + (1 - (p("\"") + p("\\")))) ^ 0) * "\""
-```
+Also enabled simple capture transfering support in the sequence. Need to improve and generalize that later on.
 
 And of course to support the printing of the strings we extended the `printExp` with string support.
 
-
-
+PEG dsl grammer for the language up so far:
+```julia
+booleanPattern = c("true" + "false") / m -> m == "true"
+integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) 
+stringEscapePattern = p("\\\"") + p("\\\\") + p("\\n") + p("\\r") + p("\\t")
+stringPattern = "\"" * c((stringEscapePattern + (1 - (p("\"") + p("\\")))) ^ 0) * "\""
+primitivePattern = booleanPattern + integerPattern + stringPattern
+```
