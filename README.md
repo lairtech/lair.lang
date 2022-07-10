@@ -120,10 +120,10 @@ stringPattern = "\"" * c((stringEscapePattern + (1 - ("\"" + "\\"))) ^ 0) * "\""
 primitivePattern = booleanPattern + integerPattern + stringPattern
 ```
 
-## 03 - Generic Interpreter
+## Chapter 03 - Generic Interpreter
 So far we have only handled selfevaluating primitive types which let us ignore many things needed for a useful interpreter like evaluation, application, environments, type system(s) and their handling, tail call optimization, continuations etc. So lets start to first implement the machinery needed to make a modular interpreter that easly extend/modifiy with new evaluation and application rules for our types. When thats in place let us introduce new stuff like enviroments, symbols, arrays, structures, functions, conditionals etc. piece by piece
 
-### 07 - Type Directed Interpreter
+### Step 07 - Type Directed Interpreter
 Let us focus on the types first because in principle each type has an data representation (intern/extern), an evaluation rule and possible an application rule in case it's a applicable type like a function, an object, a pattern etc. When thats in place we will convert all stuff we have so far to the new structure and more stuff later on in a more generic and consitent way.
 
 We will start with the simplest type system that only have isolated types which means that there is no relationship of any kind in between types. And the types are only defined by a name for now represented by a Symbol. If your implementation language don't have symbols just use strings.
