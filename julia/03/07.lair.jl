@@ -248,27 +248,15 @@ function parseExpr(input::String)
     capture
 end
 
-struct DataType
-    name::Symbol
-    fields::Array{Symbol}
-    constructor::Function
-end
-
-struct TaggedValue
-    tag::DataType
-    value
-end
-
-types = Dict()
 nativeTypes = Dict()
 
-function make(name::Symbol, values...)
-    if contains(nativeTypes, name)
-        values...
-    else 
-        TaggedValue(types[name], types[name].constuctor(values))
-    end
-end    
+function typeOf(expr::Function)
+    :PrimitiveFunction
+end
+
+function typeOf(expr)
+    nativeTypes[typeof(expr)]
+end
 
 evaluators = Dict()
 applicators = Dict()
@@ -278,13 +266,12 @@ function evalExpr(expr, env)
 end
 
 function applyExpr(applicator, args, env)
-    if typeof(applicator) == Function
+    if typeOf(applicator) == :PrimitiveFunction
         applicator(args, env)
     else
         applyExpr(applicators[typeOf(applicator)], append!([applicator], args), env)
     end
 end
-
 
 serializers = Dict()
 
@@ -316,43 +303,20 @@ end
 
 # Booleans
 booleanPattern = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
-types[:Boolean] = DataType(:Boolean, nothing, b -> b)
 nativeTypes[Bool] = :Boolean
-evaluators[:Boolean] = expr, env -> expr
+evaluators[:Boolean] = (expr, env) -> expr
 serializers[:Boolean] = expr -> expr ? "true" : "false"
 # Integers
 integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
-types[:Integer] = DataType(:Integer, nothing, i -> i)
 nativeTypes[Int64] = :Integer
-evaluators[:Integer] = expr, env -> expr
-serializer[:Integer] = expr -> expr
-
+evaluators[:Integer] = (expr, env) -> expr
+serializers[:Integer] = expr -> expr
 # Strings
 stringEscapePattern = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" # all the escape pattern we support
 stringPattern = "\"" * c((stringEscapePattern + (1 - ("\"" + "\\"))) ^ 0) * "\"" # match the escape pattern or any char except " or \ (so we only support the listed escape sequences)
-types[:String] = DataType(:String, nothing, s -> s)
 nativeTypes[String] = :String
-evaluators[:String] = expr, env -> expr
+evaluators[:String] = (expr, env) -> expr
+serializers[:String] = expr -> "\"$expr\""
 
+# static parsing rules
 primitivePattern = booleanPattern + integerPattern + stringPattern
-
-
-
-if expr == true
-    println("true")
-else expr == false
-    println("false")
-end
-end
-
-function printExpr(expr::Integer)
-println(expr)
-end
-
-function printExpr(expr::String)
-println("\"$expr\"")
-end
-
-function printExpr(expr::Any)
-println("Unkown expression: $expr")
-end

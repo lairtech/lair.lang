@@ -148,8 +148,8 @@ function applyExpr(applicator, args, env)
     end
 end
 ```
-Basically `evalExpr` will just look up the evaluation rule and apply it. `applyExp` will lookup the application rule and apply it recursivly again for non `PrimitiveFunction`s. But when we hit a `PrimitiveFunction` (native function), we stop the the recursive loop and just apply it.
+Basically `evalExpr` will just look up the evaluation rule and apply it. `applyExp` will lookup the application rule and apply it recursivly again for non `PrimitiveFunction`s. But when we hit a `PrimitiveFunction` (native function), we stop the the recursive loop and just apply it. The repl just pass `nothing` for now for the `env` in the `evalExpr` call.
 
-Now whats left is to migrate the primitive selfevaluation types to the new logic. So that `typeOf` returns the type for them and we only add evaluators for them in the form like `(exp, env) -> exp`.
+Now whats left is to migrate the primitive selfevaluation types to the new logic. So that `typeOf` returns the type identifier for them and we only add evaluators for them in the form like `(exp, env) -> exp`.
 
-We also generalize the `printExpr` function that will now get the type identifier of the expression and lookup the in the `serializer` dictionary and use the returned function to convert that expression to a string and print it. If no serializer is found just print an error message the the serializer is missing for the type.
+We also generalize the `printExpr` function that will now get the type identifier of the expression and look it up in the `serializer` dictionary and use the returned function to convert that expression to a string reprenstation and print it. If no serializer is found just print an error message the the serializer is missing for the type.
