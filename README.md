@@ -119,3 +119,37 @@ stringEscapePattern = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t"
 stringPattern = "\"" * c((stringEscapePattern + (1 - ("\"" + "\\"))) ^ 0) * "\"" 
 primitivePattern = booleanPattern + integerPattern + stringPattern
 ```
+
+## 03 - Generic Interpreter
+So far we have only handled selfevaluating primitive types which let us ignore many things needed for a useful interpreter like evaluation, application, environments, type system(s) and their handling, tail call optimization, continuations etc. So lets start to first implement the machinery needed to make a modular interpreter that easly extend/modifiy with new evaluation and application rules for our types. When thats in place let us introduce new stuff like enviroments, symbols, arrays, structures, functions, conditionals etc. piece by piece
+
+### 07 - Type Directed Interpreter
+Let us focus on the types first because in principle each type has an data representation (intern/extern), an evaluation rule and possible an application rule in case it's a applicable type like a function, an object, a pattern etc. When thats in place we will convert all stuff we have so far to the new structure and more stuff later on in a more generic and consitent way.
+
+We will start with the simplest type system that only have isolated types which means that there is no relationship of any kind in between types. And the types are only defined by a name for now represented by a Symbol. If your implementation language don't have symbols just use strings.
+
+Now we tag each value with the appropiate type and because we only deal with native types that are tagged by Julia itself we can just map the native type to our own type identifier for now. For that we create a global Dictonary `nativeTypes` that map the native type to our type identifiers and provide a `typeOf` function that returns the type identifier for a given expression. Besides our primitive types we have so far we will also map the native function type to the `PrimitiveType`.
+
+Most languages are not designed to be extensible with new semantic (or syntatic) froms within the language itself. That means a user of the language is at the merci of the language designer that they implement the right featuers needed for their problems. But if it isn't supported then the user can in most instances only use a language that have the feature and glue that parts together or hack together an approximated abstraction that in most cases isn't as integrated as the native types. 
+
+Fortunately for us it's pretty easy to design an interpreter with that kind of extensiablity. Instead of just implement the hole logic into the eval/apply function directly we introduce an indirection that look up what evaluation and application rules should be used for the expression. That way we can easly add new types with new evaluation or application rules and also expose that funtionalty to the user so they can build their own types with it's own evaluation and applications rules.
+
+Todo that we introduce an global `evaluators` and `applicators` dictonary that map a the type identifier to a an evaluation or applaction function and the generic `evalExpr` and `applyExpr` just look like something the following:
+```julia
+function evalExpr(expr, env)
+    applyExpr(evaluators[typeOf(expr)], expr, env)
+end
+
+function applyExpr(applicator, args, env)
+    if typeOf(applicator) == :PrimitiveFunction
+        applicator(args, env)
+    else
+        applyExpr(applicators[typeOf(applicator)], append!([applicator], args), env)
+    end
+end
+```
+Basically `evalExpr` will just look up the evaluation rule and apply it. `applyExp` will lookup the application rule and apply it recursivly again for non `PrimitiveFunction`s. But when we hit a `PrimitiveFunction` (native function), we stop the the recursive loop and just apply it.
+
+Now whats left is to migrate the primitive selfevaluation types to the new logic. So that `typeOf` returns the type for them and we only add evaluators for them in the form like `(exp, env) -> exp`.
+
+We also generalize the `printExpr` function that will now get the type identifier of the expression and lookup the in the `serializer` dictionary and use the returned function to convert that expression to a string and print it. If no serializer is found just print an error message the the serializer is missing for the type.
