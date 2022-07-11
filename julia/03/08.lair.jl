@@ -4,8 +4,8 @@ function pattern(pattern::Pattern)
     pattern
 end
             
-function match(anyPattern::Any, text::String, i::Integer=1)
-    match(pattern(anyPattern), text, i)
+function match(anyPattern::Any, text::String, i::Integer=1, grammar::Union{Dict, Nothing} = nothing)
+    match(pattern(anyPattern), text, i, grammar)
 end
 
 p(anyPattern) = pattern(anyPattern)
@@ -18,7 +18,7 @@ function pattern(literal::String)
     Literal(literal)
 end
 
-function match(literal::Literal, text::String, i::Integer = 1)
+function match(literal::Literal, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
     if length(text) >= i &&  startswith(text[i:end], literal.value)
         i + length(literal.value), nothing
     end
@@ -29,9 +29,9 @@ struct OrderedChoice <: Pattern
     patterns::Array{Pattern}
 end
 
-function match(orderedChoice::OrderedChoice, text::String, i::Integer = 1)
+function match(orderedChoice::OrderedChoice, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
     for pattern in orderedChoice.patterns
-        result = match(pattern, text, i)
+        result = match(pattern, text, i, grammar)
         if result !== nothing
             return result
         end
@@ -64,9 +64,9 @@ end
 
 c(pattern::Pattern) = capture(pattern::Pattern)
 
-function match(capture::Pattern, text::String, i::Integer = 1)
+function match(capture::Pattern, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
     start = i
-    result = match(capture.pattern, text, i)
+    result = match(capture.pattern, text, i, grammar)
     if result === nothing
         return nothing
     end
@@ -80,8 +80,8 @@ struct Transform <: Pattern
 end
 
 
-function match(transform::Transform, text::String, i::Integer = 1)
-    result = match(transform.pattern, text, i)
+function match(transform::Transform, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
+    result = match(transform.pattern, text, i, grammar)
     if result === nothing
         return nothing
     end
@@ -105,7 +105,7 @@ function range(min::Char, max::Char)
     CharRange(min, max)
 end
 
-function match(charRange::CharRange, text::String, i::Integer = 1)
+function match(charRange::CharRange, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
     if length(text) >= i && text[i] >= charRange.min && text[i] <= charRange.max
         i+1, nothing
     end
@@ -120,13 +120,13 @@ end
     Repeat(pattern, count)
 end
 
-function match(repeat::Repeat, text::String, i::Integer = 1)
+function match(repeat::Repeat, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
     count = repeat.count
     index = i
     result = nothing
     if count >= 0
         while count > 0
-            result = match(repeat.pattern, text, index)
+            result = match(repeat.pattern, text, index, grammar)
             if result === nothing
                 return nothing
             end
@@ -134,7 +134,7 @@ function match(repeat::Repeat, text::String, i::Integer = 1)
             index = result[1]
         end
         while true
-            restResult = match(repeat.pattern, text, index)
+            restResult = match(repeat.pattern, text, index, grammar)
             if restResult === nothing
                 return result === nothing ? (index, nothing) : result
             end
@@ -143,7 +143,7 @@ function match(repeat::Repeat, text::String, i::Integer = 1)
         end
     else 
         while count < 0
-            upToResult = match(repeat.pattern, text, index)
+            upToResult = match(repeat.pattern, text, index, grammar)
             if upToResult === nothing 
                 return result === nothing ? (index, nothing) : result
             end
@@ -177,12 +177,12 @@ function Base.:(*)(sequence1::Sequence, sequence2::Sequence)
     Sequence(append!(deepcopy(sequence1.patterns), sequence2.patterns))
 end
 
-function match(sequence::Sequence, text::String, i::Integer = 1)
+function match(sequence::Sequence, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
     index = i
     result = nothing
     capture = nothing
     for pattern in sequence.patterns
-        result = match(pattern, text, index)
+        result = match(pattern, text, index, grammar)
         if result === nothing
             return nothing
         end
@@ -209,7 +209,7 @@ function pattern(anyCharCount::Integer)
     AnyChar(anyCharCount)
 end
 
-function match(anyChar::AnyChar, text::String, i::Integer = 1)
+function match(anyChar::AnyChar, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
     if anyChar.count >= 0 && i - 1 + anyChar.count <= length(text)
         return i + anyChar.count, nothing
     elseif anyChar.count < 0 && i - 1 <= length(text) + anyChar.count
@@ -233,19 +233,43 @@ function Base.:(-)(anyPattern::Pattern, negatePattern::Any)
     (-p(negatePattern)) * anyPattern
 end
 
-function match(negatePattern::Negate, text::String, i::Integer = 1)
-    if match(negatePattern.pattern, text, i) === nothing
+function match(negatePattern::Negate, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
+    if match(negatePattern.pattern, text, i, grammar) === nothing
         i, nothing
     end
 end
 
 function parseExpr(input::String)
-    matchedExpr = match(primitivePattern, input)
+    matchedExpr = match(grammar, input)
     if matchedExpr === nothing
         return nothing
     end
     index, capture = matchedExpr
     capture
+end
+
+struct Reference <: Pattern
+    name::Symbol
+end
+
+function pattern(symbol::Symbol)
+    Reference(symbol)
+end
+
+function match(reference::Reference, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
+    if grammar !== nothing
+        rule = grammar[reference.name]
+        if rule !== nothing
+            match(rule, text, i, grammar)
+        end
+    end
+end
+
+function match(dictGrammar::Dict, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing)
+    startRuleName = dictGrammar[1]
+    if startRuleName !== nothing && dictGrammar[startRuleName] !== missing
+        match(dictGrammar[startRuleName], text, i, dictGrammar)
+    end
 end
 
 nativeTypes = Dict()
@@ -301,22 +325,23 @@ function lairRepl()
     end
 end
 
+grammar = Dict()
+grammar[1] = :Primitives
+grammar[:Primitives] = :Boolean + :Integer + :String
+
 # Booleans
-booleanPattern = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
+grammar[:Boolean] = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
 nativeTypes[Bool] = :Boolean
 evaluators[:Boolean] = (expr, env) -> expr
 serializers[:Boolean] = expr -> expr ? "true" : "false"
 # Integers
-integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
+grammar[:Integer] = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
 nativeTypes[Int64] = :Integer
 evaluators[:Integer] = (expr, env) -> expr
 serializers[:Integer] = expr -> expr
 # Strings
-stringEscapePattern = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" # all the escape pattern we support
-stringPattern = "\"" * c((stringEscapePattern + (1 - ("\"" + "\\"))) ^ 0) * "\"" # match the escape pattern or any char except " or \ (so we only support the listed escape sequences)
+grammar[:StringEscapes] = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" # all the escape pattern we support
+grammar[:String] = "\"" * c((:StringEscapes + (1 - ("\"" + "\\"))) ^ 0) * "\"" # match the escape pattern or any char except " or \ (so we only support the listed escape sequences)
 nativeTypes[String] = :String
 evaluators[:String] = (expr, env) -> expr
 serializers[:String] = expr -> "\"$expr\""
-
-# static parsing rules
-primitivePattern = booleanPattern + integerPattern + stringPattern
