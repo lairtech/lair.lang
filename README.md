@@ -154,7 +154,7 @@ Now what's left is to migrate the primitive self evaluation types to the new log
 
 We also generalize the `printExpr` function in the same way that it will now get the type identifier of the expression and look it up in the `serializer` dictionary and use the returned function to convert that expression to a string representation and print it. If no serializer is found just print an error message that the serializer is missing for the type.
 
-### Step 08 - PEG Parser Grammar Support
+### Step 08 - PEG Parser Dynamic Grammar Support
 In the previous step we made the interpreter more flexible when it comes to adding types and their evaluation and application rules in isolation/runtime so the user may add their own types that are integrated like the native types. But without also allowing syntactic abstraction for the new types they may never be as integrated as native types. In general it's much harder to make extensible syntax because the syntax rules may interact much easier in unforeseen ways than semantic extensions. To ease that problem we need a syntax that is as regular as possible when it comes to adding new rules to it.
 
 The most regular syntax that fit that bill that i am aware is postfix and prefix notation. But postfix have the problem that it can't represent variable arguments function well so we go for a lisp prefix notation for the application forms in the style of `(operator operant1 ... operantN)`. Where each operator is a applicate able type that takes 0 - N operant's that are separated by whitespace. That way the forms are all disclosed and the actual operator and operant's may all have their own syntax as long as they don't contain the whitespaces or the  delimiters `(` or `)`.
