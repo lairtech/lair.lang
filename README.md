@@ -10,10 +10,23 @@ Each Julia implementation for the steps can be found under `julia/chapter.<numbe
 
 If you just use the step descriptions to build up your own implementation it's properly wise to follow the rough order but feel free to skip around as you please.
 
+Chapter's and Step's so far:
+- [Chapter 01 - Skeleton Interpreter](#chapter-01---skeleton-interpreter)
+   - [Step 01 - The REPL](#step-01-the-repl)
+- [Chapter 02 - Self Evaluating Primitive Types & Simple PEG Parser](#chapter-02---self-evaluating-primitive-types--simple-peg-parser)
+   - [Step 01 - Booleans](#step-01-booleans)
+   - [Step 02 - PEG Recognizer](#step-02-peg-recognizer)
+   - [Step 03 - PEG Parser](#step-03-peg-parser)
+   - [Step 04 - Integers](#step-04-integers)
+   - [Step 05 - Strings](#step-05---strings)
+- [Chapter 03 - Generic Interpreter](#chapter-03---generic-interpreter)
+   - [Step 01 - Type Directed Interpreter](#step-01---type-directed-interpreter)
+   - [Step 02 - PEG Parser Dynamic Grammar Support](#step-02---peg-parser-dynamic-grammar-support)
+
 ## Chapter 01 - Skeleton Interpreter
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
 
-### Step 01: The REPL
+### Step 01 - The REPL
 Really nothing fancy but it already consists of the 3 dummy functions that will later be modified/extended:
 * parseExp: Parses the given input string
 * evalExp: Evaluates the the parsed expression
@@ -33,7 +46,7 @@ General purpose languages consists of primitive types, compound/composite types 
 
 While we add more and more primitive types we will also develop a simple PEG parser along it that we extend bit by bit to match the needed parsing features we need. At the end of it all the parsing we should have a PEG parser, that is basically just a configurable recursive decent parser that could also be used, extended or improved for other needs besides this project.
 
-### Step 01: Booleans
+### Step 01 - Booleans
 The first primitive type we will implement is the `Boolean` type because it's one of the simplest ones from a parsing and printing perspective. Because they just consists of 2 the states `true` and `false` the parsing boils down to match against the strings `true` or `false` and convert that to a Boolean type and treat all other input as unknown expressions.
 Printing will equally be simple. Just print `true` for `true` Booleans and `false` for `false` Booleans.
 
@@ -48,7 +61,7 @@ Expression = Boolean
 Boolean = true | false
 ```
 
-### Step 02: PEG Recognizer
+### Step 02 - PEG Recognizer
 Our approach to parsing, evaluation und printing for the `Boolean` language is nice and simple. But even just adding integers to our `Boolean` language would need a more sophisticated parser than just the string matcher logic we have for now. So let's write a simple PEG (Parsing Expression Grammar) Recognizer for our `Boolean` language that for now will just recognize literal string. In our case `true` and `false`
 
 To do so we write a `match` function that takes a `Pattern`, an input string and an index where in the string to start matching the against the pattern. The function will just return the index position after the matched `Pattern` or nothing.
@@ -66,7 +79,7 @@ PEG DSL grammar for the language up so far:
 booleanPattern = "true" + "false"
 ```
 
-### Step 03: PEG Parser
+### Step 03 - PEG Parser
 Until now we just had developed a small PEG recognizer but what we actually want is parser that will return an abstract syntax tree with the right datatypes instead of just the matched index. So we first extend our results of the match functions to return 2 things, the index as before and the new capture. 
 
 Then we introduce a `Capture` pattern that just hold a pattern. The match function for the `Capture` just remembers the start index and then matches the pattern and when it's a successful match it will return the index and the actual matched String from the start index until the end index (that it also will return).
@@ -80,7 +93,7 @@ PEG DSL grammar for the language up so far:
 booleanPattern = c("true" + "false") / m -> m == "true"
 ```
 
-### Step 04: Integers
+### Step 04 - Integers
 The next primitive type we will add are 64 bit integers. For that we need to extend our PEG Parser to support character ranges, repeat/optional and sequence patterns. 
 
 Implementing the `CharRange` Pattern is easy. It just hold the min char and the max char. The match function just checks if the text length is still in range of the actual index and then checks if the char at that index is >= min char and <= max char. If so it returns the actual index + 1 otherwise `nothing` as usual.
