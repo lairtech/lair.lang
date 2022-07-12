@@ -6,7 +6,7 @@ Each of the steps for building up a language will be small and incrementally bui
 
 Also after each step we have a working interpreter for the language build up so far.
 
-Each Julia implementation for the steps can be found under `julia/<chapter-number>/<step-number>.lair.jl`
+Each Julia implementation for the steps can be found under `julia/<chapter-number>/<step-number>`. The interpreter can be found there under `lair.jl` and support files.
 
 If you just use the step descriptions to build up your own implementation it's properly wise to follow the rough order but feel free to skip around as you please.
 
@@ -33,7 +33,7 @@ General purpose languages consists of primitive types, compound/composite types 
 
 While we add more and more primitive types we will also develop a simple PEG parser along it that we extend bit by bit to match the needed parsing features we need. At the end of it all the parsing we should have a PEG parser, that is basically just a configurable recursive decent parser that could also be used, extended or improved for other needs besides this project.
 
-### Step 02: Booleans
+### Step 01: Booleans
 The first primitive type we will implement is the `Boolean` type because it's one of the simplest ones from a parsing and printing perspective. Because they just consists of 2 the states `true` and `false` the parsing boils down to match against the strings `true` or `false` and convert that to a Boolean type and treat all other input as unknown expressions.
 Printing will equally be simple. Just print `true` for `true` Booleans and `false` for `false` Booleans.
 
@@ -48,7 +48,7 @@ Expression = Boolean
 Boolean = true | false
 ```
 
-### Step 03: PEG Recognizer
+### Step 02: PEG Recognizer
 Our approach to parsing, evaluation und printing for the `Boolean` language is nice and simple. But even just adding integers to our `Boolean` language would need a more sophisticated parser than just the string matcher logic we have for now. So let's write a simple PEG (Parsing Expression Grammar) Recognizer for our `Boolean` language that for now will just recognize literal string. In our case `true` and `false`
 
 To do so we write a `match` function that takes a `Pattern`, an input string and an index where in the string to start matching the against the pattern. The function will just return the index position after the matched `Pattern` or nothing.
@@ -66,7 +66,7 @@ PEG DSL grammar for the language up so far:
 booleanPattern = "true" + "false"
 ```
 
-### Step 04: PEG Parser
+### Step 03: PEG Parser
 Until now we just had developed a small PEG recognizer but what we actually want is parser that will return an abstract syntax tree with the right datatypes instead of just the matched index. So we first extend our results of the match functions to return 2 things, the index as before and the new capture. 
 
 Then we introduce a `Capture` pattern that just hold a pattern. The match function for the `Capture` just remembers the start index and then matches the pattern and when it's a successful match it will return the index and the actual matched String from the start index until the end index (that it also will return).
@@ -80,7 +80,7 @@ PEG DSL grammar for the language up so far:
 booleanPattern = c("true" + "false") / m -> m == "true"
 ```
 
-### Step 05: Integers
+### Step 04: Integers
 The next primitive type we will add are 64 bit integers. For that we need to extend our PEG Parser to support character ranges, repeat/optional and sequence patterns. 
 
 Implementing the `CharRange` Pattern is easy. It just hold the min char and the max char. The match function just checks if the text length is still in range of the actual index and then checks if the char at that index is >= min char and <= max char. If so it returns the actual index + 1 otherwise `nothing` as usual.
@@ -101,7 +101,7 @@ integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i
 primitivePattern = booleanPattern + integerPattern
 ```
 
-### Step 06 - Strings
+### Step 05 - Strings
 String will be represented with `"` as delimiter and also have the usual escapes sequences like `\"`, `\n` etc. So we use an PEG sequence to match the beginning and ending `"`. But the string content in between can be any char except `"` or `\` or the escape sequences `\n`, `\r`, `\t`, `\\` and `\"` with is the escaped `"` and will not be confused with the string ending.
 
 To do that we extend our PEG parser with an `AnyChar` pattern that will hold the count of the characters to match. If positive we match the exact count of any character otherwise we return `nothing`. If the count is negative we match only there are -count character left.
@@ -123,7 +123,7 @@ primitivePattern = booleanPattern + integerPattern + stringPattern
 ## Chapter 03 - Generic Interpreter
 So far we have only handled self evaluating primitive types which let us ignore many things needed for a useful interpreter like evaluation and application rules, environments, type system(s) and their handling, tail call optimization, continuations etc. So lets start to first implement the machinery needed to make a modular type directed interpreter that is easy to extend/modify with new evaluation and application rules for our types. When that's in place let us introduce new stuff like environments, symbols, arrays, structures, functions, conditionals etc. piece by piece
 
-### Step 07 - Type Directed Interpreter
+### Step 01 - Type Directed Interpreter
 Let us focus on the types first because in principle each type has an data representation (intern/extern), an evaluation rule and possible an application rule in case it's a applicable type like a function, an object, a pattern etc. When that's in place we will convert all stuff we have so far to the new structure and more stuff later on in a more generic and consistent way.
 
 We will start with the simplest type system that only have isolated types which means that there is no relationship of any kind in between types. And the types are only defined by a name for now represented by a identifier symbol. If your implementation language don't have symbols just use strings.
@@ -154,7 +154,7 @@ Now what's left is to migrate the primitive self evaluation types to the new log
 
 We also generalize the `printExpr` function in the same way that it will now get the type identifier of the expression and look it up in the `serializer` dictionary and use the returned function to convert that expression to a string representation and print it. If no serializer is found just print an error message that the serializer is missing for the type.
 
-### Step 08 - PEG Parser Dynamic Grammar Support
+### Step 02 - PEG Parser Dynamic Grammar Support
 In the previous step we made the interpreter more flexible when it comes to adding types and their evaluation and application rules in isolation/runtime so the user may add their own types that are integrated like the native types. But without also allowing syntactic abstraction for the new types they may never be as integrated as native types. In general it's much harder to make extensible syntax because the syntax rules may interact much easier in unforeseen ways than semantic extensions. To ease that problem we need a syntax that is as regular as possible when it comes to adding new rules to it.
 
 The most regular syntax that fit that bill that i am aware of are the postfix and prefix notation. But postfix have the problem that it can't represent variable arguments function well so we go for a lisp like prefix notation for the application forms in the style of `(operator operant1 ... operantN)`. Where each operator is a applicate able type that takes 0 - N operant's that are separated by whitespace. That way the forms are all disclosed and the actual operator and operant's may all have their own syntax as long as they don't contain the whitespaces or the  delimiters `(` and `)`.
