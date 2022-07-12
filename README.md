@@ -12,12 +12,12 @@ If you just use the step descriptions to build up your own implementation it's p
 
 Chapter's and Step's so far:
 - [Chapter 01 - Skeleton Interpreter](#chapter-01---skeleton-interpreter)
-   - [Step 01 - The REPL](#step-01-the-repl)
+   - [Step 01 - The REPL](#step-01---the-repl)
 - [Chapter 02 - Self Evaluating Primitive Types & Simple PEG Parser](#chapter-02---self-evaluating-primitive-types--simple-peg-parser)
-   - [Step 01 - Booleans](#step-01-booleans)
-   - [Step 02 - PEG Recognizer](#step-02-peg-recognizer)
-   - [Step 03 - PEG Parser](#step-03-peg-parser)
-   - [Step 04 - Integers](#step-04-integers)
+   - [Step 01 - Booleans](#step-01---booleans)
+   - [Step 02 - PEG Recognizer](#step-02---peg-recognizer)
+   - [Step 03 - PEG Parser](#step-03---peg-parser)
+   - [Step 04 - Integers](#step-04---integers)
    - [Step 05 - Strings](#step-05---strings)
 - [Chapter 03 - Generic Interpreter](#chapter-03---generic-interpreter)
    - [Step 01 - Type Directed Interpreter](#step-01---type-directed-interpreter)
