@@ -177,3 +177,16 @@ After revealing some general syntax design decision needed later on we are still
 The grammar itself is just a dictionary that map grammar rule names to their rules. And have 1 special entry at `1` that will hold the start rule name. We could make a extra `Grammar` pattern but i have decided against it. Because we will just pass the grammar along in each match function and only the new `Reference` pattern that hold a grammar name will lookup the respective grammar rule and apply the match function to it. And if we just use the inbuild dictionary we don't must write functions for adding, deleting and modifying grammar rules. Of course we also need to write a new match function that takes a dictionary that get the start rule with the key `1` and then lookup it up and apply the match function to it. For the names we have chosen to use symbols but if your implementation language don't have them just use strings. But be careful that your possible PEG DSL may then collide with the `Literal` pattern. 
 
 The only thing left for now is to convert the fixed PEG rules so far to the new dynamic grammar logic which is pretty strait forward.
+
+### Step 03 - Arrays & Multiple PEG Captures
+So far we only handled the atomic types `Boolean`s, `String`s and `Integer`s that are also captured as singular items and returned directly in the result. Also our `Sequence` match function so far has a hack in it so handle the capture of the String pattern. But for more sophisticated matches that need multiple captures like the `Array` we will introduce that single capture functionality won't be enough.
+
+To support multiple captures the capture pattern
+To support multiple captures we will extend each `match` function with a `captureStack` that will hold all captured items so far. Basically all match functions, except those that won't create captures like the `Negate` pattern, just pass the `captureStack` through. The `Capture` match function will the only function that place items onto the capture stack. But we also need to extend the `Capture` pattern with a type to differentiate which what kind of capture we are dealing with. For now we only will have the following capture types:
+* `string` just as before it only extract the text string but now places it into the result and also onto the given capture stack.
+* `array` will take the hole capture stack and place it as a hole onto the given capture stack given.
+To make that work we always need to create a fresh capture stack in the `Capture` match function before that we use for the match call to the capture pattern. That way we don't modify outer capture stacks and can deal with the captures in isolation.
+Also the `Tranform` pattern will now pop the last item from the stack, transform it and put it back onto the capture stack.
+
+Then we introduce a helper function `resultCapture` to extract the capture results for the `Sequence` and `Repeat` patterns that may capture multiple values. Also using it on the `Tranform` pattern is convenient but we could do without it. It just takes the captureStack and returns nothing if the capture stack is empty, if the capture stack only contain 1 item use that as capture result. Otherwise just use the hole capture stack as capture result.
+
