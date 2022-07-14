@@ -33,13 +33,13 @@ Really nothing fancy but it already consists of the 3 dummy functions that will 
 * evalExp: Evaluates the the parsed expression
 * printExp: Just print the given expression
 
-The `lairRepl` function for the interactive skeleton interpreter itself do the following steps in a infinite loop for now:
+The `Lair.repl` function for the interactive skeleton interpreter itself do the following steps in a infinite loop for now:
    * print the prompt `lair>`
    * read a line from input
    * if the input is `exit` abort the endless loop
-   * create a expression by parsing the input with `parseExp`
-   * evaluates the parsed expression with `evalExp`
-   * print the evaluated expression with `printExp`
+   * create a expression by parsing the input with `Lair.parse`
+   * evaluates the parsed expression with `Lair.eval`
+   * print the evaluated expression with `Lair.print`
    * repeat from beginning
 
 ## Chapter 02 - Self Evaluating Primitive Types & Simple PEG Parser
@@ -104,14 +104,14 @@ Implementing the `Repeat` patterns are a bit harder. It holds a count and the pa
 The last bit we need is a `Sequence` pattern that allows us to make a sequential list of patterns that must match one after the other. The `Sequence`pattern hold just that sequential list and test one pattern after the other, only if all match it will return a match. Otherwise `nothing`.
 
 With that 3 additional pattern we can now express integers with or without a leading sign and convert the captured integer string to and `Int64` with some operator overloading like:
-`integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i)`
+`integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> Base.parse(Int64, i)`
 
 The last bit of changes to support also integers in the interpreter is to combine the `booleanPattern` and `integerPattern` with an `OrderedChoice` like `primitivePattern = booleanPattern + integerPattern` and use that now in the `parsingExp`. We may also need to change the `printExp` to handle integer printing.
 
 PEG DSL grammar for the language up so far:
 ```julia
 booleanPattern = c("true" + "false") / m -> m == "true"
-integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i)
+integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> Base.parse(Int64, i)
 primitivePattern = booleanPattern + integerPattern
 ```
 
@@ -128,7 +128,7 @@ And of course to support the printing of the strings we extended the `printExp` 
 PEG DSL grammar for the language up so far:
 ```julia
 booleanPattern = c("true" + "false") / m -> m == "true" 
-integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) 
+integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> Base.parse(Int64, i) 
 stringEscapePattern = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" 
 stringPattern = "\"" * c((stringEscapePattern + (1 - ("\"" + "\\"))) ^ 0) * "\"" 
 primitivePattern = booleanPattern + integerPattern + stringPattern
@@ -148,25 +148,25 @@ Most languages are not designed to be extensible with new semantic (or syntactic
 
 Fortunately for us it's pretty easy to design an interpreter with that kind of extensibility. Instead of just implement the hole logic into the eval/apply function directly we introduce an indirection that look up what evaluation and application rules should be used for the expression. That way we can easily add new types with new evaluation or application rules and also expose that functionality to the user so they can build their own types with it's own evaluation and applications rules that behave like native types.
 
-To-do that we introduce an global `evaluators` and `applicators` dictionary that map a the type identifier to a an evaluation or application function and the generic `evalExpr` and `applyExpr` just look like something the following:
+To-do that we introduce an global `evaluators` and `applicators` dictionary that map a the type identifier to a an evaluation or application function and the generic `Lair.eval` and `Lair.apply` just look like something the following:
 ```julia
-function evalExpr(expr, env)
-    applyExpr(evaluators[typeOf(expr)], expr, env)
+function eval(expr, env)
+    apply(evaluators[typeOf(expr)], expr, env)
 end
 
-function applyExpr(applicator, args, env)
+function apply(applicator, args, env)
     if typeOf(applicator) == :PrimitiveFunction
         applicator(args, env)
     else
-        applyExpr(applicators[typeOf(applicator)], append!([applicator], args), env)
+        apply(applicators[typeOf(applicator)], append!([applicator], args), env)
     end
 end
 ```
-Basically `evalExpr` will just look up the evaluation rule and apply it. `applyExp` will lookup the application rule and apply it recursively again for non `PrimitiveFunction`s. But when we hit a `PrimitiveFunction` (native function), we stop the the recursive loop and just apply it. The REPL just pass `nothing` for now for the environment parameter `env` in the `evalExpr` call.
+Basically `Lair.eval` will just look up the evaluation rule and apply it. `Lair.apply` will lookup the application rule and apply it recursively again for non `PrimitiveFunction`s. But when we hit a `PrimitiveFunction` (native function), we stop the the recursive loop and just apply it. The REPL just pass `nothing` for now for the environment parameter `env` in the `Lair.eval` call.
 
 Now what's left is to migrate the primitive self evaluation types to the new logic. So that `typeOf` returns the type identifier for them and we only add evaluators for them in the form like `(exp, env) -> exp`.
 
-We also generalize the `printExpr` function in the same way that it will now get the type identifier of the expression and look it up in the `serializer` dictionary and use the returned function to convert that expression to a string representation and print it. If no serializer is found just print an error message that the serializer is missing for the type.
+We also generalize the `Lair.print` function in the same way that it will now get the type identifier of the expression and look it up in the `serializer` dictionary and use the returned function to convert that expression to a string representation and print it. If no serializer is found just print an error message that the serializer is missing for the type.
 
 ### Step 02 - PEG Parser Dynamic Grammar Support
 In the previous step we made the interpreter more flexible when it comes to adding types and their evaluation and application rules in isolation/runtime so the user may add their own types that are integrated like the native types. But without also allowing syntactic abstraction for the new types they may never be as integrated as native types. In general it's much harder to make extensible syntax because the syntax rules may interact much easier in unforeseen ways than semantic extensions. To ease that problem we need a syntax that is as regular as possible when it comes to adding new rules to it.

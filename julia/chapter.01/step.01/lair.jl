@@ -1,24 +1,28 @@
-function parseExp(input::String)
+module Lair
+
+function parse(input::String)
     input
 end
 
-function evalExp(expr)
+function eval(expr)
     expr
 end
 
-function printExp(expr)
+function print(expr)
     println(expr)
 end
 
-function lairRepl()
+function repl()
     while true
-        print("lair>")
+        Base.print("lair>")
         input = readline()
         if input == "exit"
             return
         end
-        expr = parseExp(input)
-        result  = evalExp(expr)
-        printExp(result)
+        expr = parse(input)
+        result  = eval(expr)
+        print(result)
     end
+end
+
 end

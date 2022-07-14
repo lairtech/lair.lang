@@ -1,4 +1,6 @@
-function parseExpr(input::String)
+module Lair
+
+function parse(input::String)
     if input == "true"
         return true
     elseif input == "false"
@@ -6,11 +8,11 @@ function parseExpr(input::String)
     end
 end
 
-function evalExpr(expr)
+function eval(expr)
     expr
 end
 
-function printExpr(expr)
+function print(expr)
     if expr == true
         println("true")
     elseif expr == false
@@ -20,19 +22,21 @@ function printExpr(expr)
     end
 end
 
-function lairRepl()
+function repl()
     while true
-        print("lair>")
+        Base.print("lair>")
         input = readline()
         if input == "exit"
             return
         end
-        expr = parseExpr(input)
+        expr = parse(input)
         if expr === nothing
             println("Unable to parse expression: \"$input\"")
             continue
         end
-        result  = evalExpr(expr)
-        printExpr(result)
+        result  = eval(expr)
+        print(result)
     end
+end
+
 end
