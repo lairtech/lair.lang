@@ -6,7 +6,7 @@ Each of the steps for building up a language will be small and incrementally bui
 
 Also after each step we have a working interpreter for the language build up so far.
 
-Each Julia implementation for the steps can be found under `julia/chapter.<number>/step.<number>`. The interpreter can be found there under `lair.jl` and it's support files like `peg.jl`.
+Each Julia implementation for the steps can be found under `julia/<chapter-number>/<step-number>`. The interpreter can be found there under `lair.jl` and it's support files like `peg.jl`.
 
 To start the REPL load the `lair.jl` file of interest and start the REPL with `Lair.repl()`.
 
