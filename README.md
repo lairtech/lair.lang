@@ -13,18 +13,18 @@ To start the REPL load the `lair.jl` file of interest and start the REPL with `L
 If you just use the step descriptions to build up your own implementation it's properly wise to follow the rough order but feel free to skip around as you please.
 
 Chapter's and Step's so far:
-- [01 - Skeleton Interpreter](#chapter-01---skeleton-interpreter)
-   - [01.01 - The REPL](#step-01---the-repl)
-- [02 - Self Evaluating Primitive Types & Simple PEG Parser](#chapter-02---self-evaluating-primitive-types--simple-peg-parser)
-   - [02.01 - Booleans](#step-01---booleans)
-   - [02.02 - PEG Recognizer](#step-02---peg-recognizer)
-   - [02.03 - PEG Parser](#step-03---peg-parser)
-   - [02.04 - Integers](#step-04---integers)
-   - [02.05 - Strings](#step-05---strings)
-- [03 - Generic Interpreter](#chapter-03---generic-interpreter)
-   - [03.01 - Type Directed Interpreter](#step-01---type-directed-interpreter)
-   - [03.02 - PEG Parser Dynamic Grammar Support](#step-02---peg-parser-dynamic-grammar-support)
-   - [03.03 - Arrays & Multiple PEG Captures](#step-03---arrays--multiple-peg-captures)
+- [01 - Skeleton Interpreter](#01---skeleton-interpreter)
+   - [01.01 - The REPL](#0101---the-repl)
+- [02 - Self Evaluating Primitive Types & Simple PEG Parser](#02---self-evaluating-primitive-types--simple-peg-parser)
+   - [02.01 - Booleans](#0201---booleans)
+   - [02.02 - PEG Recognizer](#0202---peg-recognizer)
+   - [02.03 - PEG Parser](#0203---peg-parser)
+   - [02.04 - Integers](#0204---integers)
+   - [02.05 - Strings](#0205---strings)
+- [03 - Generic Interpreter](#03---generic-interpreter)
+   - [03.01 - Type Directed Interpreter](#0301---type-directed-interpreter)
+   - [03.02 - PEG Parser Dynamic Grammar Support](#0302---peg-parser-dynamic-grammar-support)
+   - [03.03 - Arrays & Multiple PEG Captures](#0303---arrays--multiple-peg-captures)
 
 ## 01 - Skeleton Interpreter
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
