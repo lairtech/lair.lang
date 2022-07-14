@@ -31,9 +31,9 @@ To get something simple up and running as fast as possible we will start with a 
 
 ### Step 01 - The REPL
 Really nothing fancy but it already consists of the 3 dummy functions that will later be modified/extended:
-* parseExp: Parses the given input string
-* evalExp: Evaluates the the parsed expression
-* printExp: Just print the given expression
+* `Lair.parse`: Parses the given input string
+* `Lair.eval`: Evaluates the the parsed expression
+* `Lair.print`: Just print the given expression
 
 The `Lair.repl` function for the interactive skeleton interpreter itself do the following steps in a infinite loop for now:
    * print the prompt `lair>`
@@ -73,7 +73,7 @@ For parsing `Boolean`s we just need 2 `Pattern`s:
 * `Literal` will hold a string that will literally be matched against the input string at the actual index position and returns the index + length of the matched string
 * `OrderedChoice` will hold multiple `Pattern` in order and try to match them one at a time against the input string at the index position. The first `Pattern` that matches will be the result of the `OrderedChoice`
 
-With just that 2 Patterns and the `match` functions we can implement out PEG recognizer for `Boolean`s that will return the index until it matched or nothing. If we matched nothing we just return nothing from the `parseExpr` function. If we matched something we will check if the index is after the last index of the input string. Later on we will properly improve the match function to support hole or nothing matches but for now that is enough.
+With just that 2 Patterns and the `match` functions we can implement out PEG recognizer for `Boolean`s that will return the index until it matched or nothing. If we matched nothing we just return nothing from the `Lair.parse` function. If we matched something we will check if the index is after the last index of the input string. Later on we will properly improve the match function to support hole or nothing matches but for now that is enough.
 
 For convenience we may use operator overloading and pattern constructing functions to make a small PEG domain specific language grammar that is better readable. 
 
@@ -89,7 +89,7 @@ Then we introduce a `Capture` pattern that just hold a pattern. The match functi
 
 So now we have the possibility to extract the relevant text for our parser with the `Capture` patterns. But they are still just strings so let's add another pattern `Transform` that holds a pattern and a transformation function. The match function for the transform pattern just matches the pattern and if it matches and also have a capture it will apply the transformation function to the capture.
 
-We can now rewrite our `booleanPattern = "true" + "false"` to a pattern that capture the true/false and then transform it into a Boolean value with the following pattern `booleanPattern = c("true" + "false") / m -> m == "true"` and reduce the `parseExp` function just to a call to match function and return the capture if there is a match otherwise we return nothing.
+We can now rewrite our `booleanPattern = "true" + "false"` to a pattern that capture the true/false and then transform it into a Boolean value with the following pattern `booleanPattern = c("true" + "false") / m -> m == "true"` and reduce the `parse` function just to a call to match function and return the capture if there is a match otherwise we return nothing.
 
 PEG DSL grammar for the language up so far:
 ```julia
@@ -108,7 +108,7 @@ The last bit we need is a `Sequence` pattern that allows us to make a sequential
 With that 3 additional pattern we can now express integers with or without a leading sign and convert the captured integer string to and `Int64` with some operator overloading like:
 `integerPattern = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> Base.parse(Int64, i)`
 
-The last bit of changes to support also integers in the interpreter is to combine the `booleanPattern` and `integerPattern` with an `OrderedChoice` like `primitivePattern = booleanPattern + integerPattern` and use that now in the `parsingExp`. We may also need to change the `printExp` to handle integer printing.
+The last bit of changes to support also integers in the interpreter is to combine the `booleanPattern` and `integerPattern` with an `OrderedChoice` like `primitivePattern = booleanPattern + integerPattern` and use that now in the `Lair.parse`. We may also need to change the `Lair.print` to handle integer printing.
 
 PEG DSL grammar for the language up so far:
 ```julia
@@ -125,7 +125,7 @@ We also will introduce a `Negate` pattern that holds a pattern and only matches 
 
 Also enabled simple capture transferring support in the sequence. Need to improve and generalize that later on.
 
-And of course to support the printing of the strings we extended the `printExp` with string support.
+And of course to support the printing of the strings we extended the `Lair.print` with string support.
 
 PEG DSL grammar for the language up so far:
 ```julia
