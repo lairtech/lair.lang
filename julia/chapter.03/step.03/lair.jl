@@ -2,7 +2,7 @@ module Lair
 
 include("peg.jl")
 
-import Base.typename # needed to only get the type name and not also it's parameter that we don't care for now
+import Base.typename # needed to only get the type name and not also it's parameters that we don't care for now
 
 function parse(input::String)
     matchedExpr = match(grammar, input)

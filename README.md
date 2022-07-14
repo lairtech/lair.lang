@@ -193,3 +193,13 @@ Also the `Tranform` pattern will now pop the last item from the stack, transform
 
 Then we introduce a helper function `resultCapture` to extract the capture results for the `Sequence` and `Repeat` patterns that may capture multiple values. Also using it on the `Tranform` pattern is convenient but we could do without it. It just takes the captureStack and returns nothing if the capture stack is empty, if the capture stack only contain 1 item use that as capture result. Otherwise just use the hole capture stack as capture result.
 
+The last thing to do is to warp the new stuff into the grammar including white space support. For we let every thing be an expression and differentiate between atoms (primitive basic types) and collections. So the Grammar structure should look something like that:
+```julia
+grammar[1] = :Expression
+grammar[:Expression] = :WhiteSpace * (:Collection + :Atom) * :WhiteSpace
+grammar[:Atom] = :Boolean + :Integer + :String
+grammar[:Collection] = :Array
+
+grammar[:WhiteSpace] = (" " + "\t" + "\r" + "\n") ^ 0
+```
+The array them self use the new array capture mechanism and should look something like that `grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]"` and evaluate each of their elements like that `evaluators[:Array] = (array, env) -> map(item -> eval(item, env), array)`. The rest should be self explaining.
