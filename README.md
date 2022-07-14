@@ -22,6 +22,7 @@ Chapter's and Step's so far:
 - [Chapter 03 - Generic Interpreter](#chapter-03---generic-interpreter)
    - [Step 01 - Type Directed Interpreter](#step-01---type-directed-interpreter)
    - [Step 02 - PEG Parser Dynamic Grammar Support](#step-02---peg-parser-dynamic-grammar-support)
+   - [Step 03 - Arrays & Multiple PEG Captures](#step-03---arrays--multiple-peg-captures)
 
 ## Chapter 01 - Skeleton Interpreter
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
