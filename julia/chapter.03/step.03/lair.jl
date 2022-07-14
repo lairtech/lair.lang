@@ -1,3 +1,5 @@
+import Base.typename
+
 abstract type Pattern end
 
 function pattern(pattern::Pattern)
@@ -73,15 +75,28 @@ ca(pattern::Pattern) = captureArray(pattern::Pattern)
 
 function match(capture::Pattern, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing, captureStack::Array=[])
     start = i
-    result = match(capture.pattern, text, i, grammar, []) # new capture stack
+    newCaptureStack = []
+    result = match(capture.pattern, text, i, grammar, newCaptureStack)
     if result === nothing
         return nothing
     end
     index, caputure = result
     if capture.type == :string
+        push!(captureStack, text[start:index-1])
         return index, text[start:index-1]
     elseif capture.type == :array
-        return index, Array(captureStack)
+        push!(captureStack, Array(newCaptureStack))
+        return index, Array(newCaptureStack)
+    end
+end
+
+function resultCapture(captureStack::Array)
+    if isempty(captureStack)
+        nothing
+    elseif length(captureStack) == 1
+        captureStack[1]
+    else
+        captureStack
     end
 end
 
@@ -95,8 +110,8 @@ function match(transform::Transform, text::String, i::Integer = 1, grammar::Unio
     if result === nothing
         return nothing
     end
-    index, capture = result
-    index, transform.fun(capture)
+    push!(captureStack, transform.fun(pop!(captureStack)))
+    result[1], resultCapture(captureStack)
 end
  
 function Base.:(/)(pattern::Pattern, fun::Function)
@@ -145,9 +160,6 @@ function match(repeat::Repeat, text::String, i::Integer = 1, grammar::Union{Dict
             if restResult === nothing
                 return result === nothing ? (index, nothing) : result
             end
-            if restResult[2] !== nothing
-                push!(captureStack, restResult[2])
-            end
             result = restResult
             index = result[1]
         end
@@ -157,15 +169,12 @@ function match(repeat::Repeat, text::String, i::Integer = 1, grammar::Union{Dict
             if upToResult === nothing 
                 return result === nothing ? (index, nothing) : result
             end
-            if upToResult[2] !== nothing
-                push!(captureStack, upToResult[2])
-            end
             result = upToResult
             index = result[1]
             count = count + 1
         end
     end
-    result  
+    index, resultCapture(captureStack) 
 end
 
           
@@ -193,19 +202,14 @@ end
 function match(sequence::Sequence, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing, captureStack::Array=[])
     result = nothing
     index = i
-    capture = nothing
     for pattern in sequence.patterns
         result = match(pattern, text, index, grammar, captureStack)
         if result === nothing
             return nothing
         end
-        if result[2] !== nothing
-            capture = result[2]
-            push!(captureStack, result[2])
-        end
         index = result[1]     
     end
-    index, capture
+    index, resultCapture(captureStack)
 end
 
 struct AnyChar <: Pattern
@@ -241,7 +245,7 @@ function Base.:(-)(anyPattern::Pattern, negatePattern::Any)
 end
 
 function match(negatePattern::Negate, text::String, i::Integer = 1, grammar::Union{Dict, Nothing} = nothing, captureStack::Array=[])
-    if match(negatePattern.pattern, text, i, grammar) === nothing
+    if match(negatePattern.pattern, text, i, grammar) === nothing # use new capture stack that will be thrown away
         i, nothing
     end
 end
@@ -289,7 +293,7 @@ function typeOf(expr::Function)
 end
 
 function typeOf(expr)
-    nativeTypes[typeof(expr)]
+    nativeTypes[typename(typeof(expr))]
 end
 
 evaluators = Dict()
@@ -347,24 +351,22 @@ grammar[:WhiteSpace] = (" " + "\t" + "\r" + "\n") ^ 0
 
 # Booleans
 grammar[:Boolean] = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
-nativeTypes[Bool] = :Boolean
+nativeTypes[typename(Bool)] = :Boolean
 evaluators[:Boolean] = (expr, env) -> expr
 serializers[:Boolean] = expr -> expr ? "true" : "false"
 # Integers
 grammar[:Integer] = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
-nativeTypes[Int64] = :Integer
+nativeTypes[typename(Int64)] = :Integer
 evaluators[:Integer] = (expr, env) -> expr
 serializers[:Integer] = expr -> expr
 # Strings
 grammar[:StringEscapes] = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" # all the escape pattern we support
 grammar[:String] = "\"" * c((:StringEscapes + (1 - ("\"" + "\\"))) ^ 0) * "\"" # match the escape pattern or any char except " or \ (so we only support the listed escape sequences)
-nativeTypes[String] = :String
+nativeTypes[typename(String)] = :String
 evaluators[:String] = (expr, env) -> expr
 serializers[:String] = expr -> "\"$expr\""
 # Arrays
-grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]" #/ l -> (l === nothing) ? [] : Array(l) 
-nativeTypes[Vector{Any}] = :Array
-evaluators[:Array] = (array, env) -> Vector{Any}(map(item -> evalExpr(item, env), array))
+grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]" 
+nativeTypes[typename(Array)] = :Array
+evaluators[:Array] = (array, env) -> map(item -> evalExpr(item, env), array)
 serializers[:Array] = array -> string("[", join(map(serializeExpr, array), " "), "]")
-
-match(grammar, "[1]")
