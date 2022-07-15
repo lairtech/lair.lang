@@ -203,3 +203,10 @@ grammar[:Collection] = :Array
 grammar[:WhiteSpace] = (" " + "\t" + "\r" + "\n") ^ 0
 ```
 The array them self use the new array capture mechanism and should look something like that `grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]"` and evaluate each of their elements like that `evaluators[:Array] = (array, env) -> map(item -> eval(item, env), array)`. The rest should be self explaining.
+
+### 03.04 - Environment And Symbols
+So far our types didn't need an environment to evaluate the values because they are self evaluating or only consists of self evaluating parts in the array case. That will change now with the introduction of symbols. A symbol is just a identifier for a value. The default evaluation of a symbol is that it will lookup the value of the symbol in the environment. The environment itself is just a key value store of symbols to values. With the twist that we can nest environments and their respective scopes that they represent. So if we don't find a key in the actual active environment we look in the surrounding environment for the value. And keep that going until we found the symbol or there are no more surrounding environments in which case we abort with an unbound variable error.
+
+Because we still have not introduced an applicate able form we just add the symbols `a = 1` and `b = 2` for testing the functionality. Also the contents of the while loop in the REPL is now surrounded by a `try/catch` block so that we catch any exception in the interpreter, print it and continue until the user exit it explicitly.
+
+The allowed characters for symbols are any character excluding the delimiters so far and the whitespace. Will later on more and more restricted depending on the actual syntax representation we choose for other forms. And if we ever choose to support also an infix syntax with operators then we need to exclude those or handle them differently.

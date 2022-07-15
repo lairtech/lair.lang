@@ -1,6 +1,7 @@
 module Lair
 
 include("peg.jl")
+include("environment.jl")
 
 import Base.typename # needed to only get the type name and not also it's parameters that we don't care for now
 
@@ -54,30 +55,36 @@ function print(expr)
     println(serialize(expr))
 end
 
-function repl()
+function repl(env::Environment = globalEnviroment)
     while true
-        Base.print("lair>")
-        input = readline()
-        if input == "exit"
-            return
+        try
+            Base.print("lair>")
+            input = readline()
+            if input == "exit"
+                return
+            end
+            expr = parse(input)
+            if expr === nothing
+                println("Unable to parse expression: \"$input\"")
+                continue
+            end        
+            result  = eval(expr, env)
+            print(result)
+        catch e
+            println("Error: "  * sprint(showerror, e))
         end
-        expr = parse(input)
-        if expr === nothing
-            println("Unable to parse expression: \"$input\"")
-            continue
-        end
-        result  = eval(expr, nothing)
-        print(result)
     end
 end
 
 grammar = Dict()
 grammar[1] = :Expression
-grammar[:Expression] = :WhiteSpace * (:Collection + :Atom) * :WhiteSpace
-grammar[:Atom] = :Boolean + :Integer + :String
+grammar[:Expression] = :WhiteSpaces * (:Collection + :Atom) * :WhiteSpaces
+grammar[:Atom] = :Boolean + :Integer + :String + :Symbol
 grammar[:Collection] = :Array
 
-grammar[:WhiteSpace] = (" " + "\t" + "\r" + "\n") ^ 0
+grammar[:WhiteSpace] = " " + "\t" + "\r" + "\n"
+grammar[:WhiteSpaces] = p(:WhiteSpace) ^ 0
+grammar[:Delimiter] = "\"" + "[" + "]" + :WhiteSpace
 
 # Booleans
 grammar[:Boolean] = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
@@ -100,5 +107,14 @@ grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]"
 nativeTypes[typename(Array)] = :Array
 evaluators[:Array] = (array, env) -> map(item -> eval(item, env), array)
 serializers[:Array] = array -> string("[", join(map(serialize, array), " "), "]")
+# Symbols
+grammar[:Symbol] = c((p(1) - :Delimiter) ^ 1) / symbol -> Symbol(symbol)
+nativeTypes[typename(Symbol)] = :Symbol
+evaluators[:Symbol] = (symbol, env) -> getVar(env, symbol)
+serializers[:Symbol] = symbol -> string(symbol)
 
+globalEnviroment = Environment(Dict(), nothing)
+globalEnviroment.vars[:a] = 1
+globalEnviroment.vars[:b] = 2
+    
 end
