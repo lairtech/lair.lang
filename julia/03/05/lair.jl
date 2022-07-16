@@ -78,13 +78,14 @@ end
 
 grammar = Dict()
 grammar[1] = :Expression
-grammar[:Expression] = :WhiteSpaces * (:Collection + :Atom) * :WhiteSpaces
+grammar[:Expression] = :WhiteSpaces * (:Code + :Collection + :Atom) * :WhiteSpaces
 grammar[:Atom] = :Boolean + :Integer + :String + :Symbol
 grammar[:Collection] = :Array
+grammar[:Code] = :Application
 
 grammar[:WhiteSpace] = " " + "\t" + "\r" + "\n"
 grammar[:WhiteSpaces] = p(:WhiteSpace) ^ 0
-grammar[:Delimiter] = "\"" + "[" + "]" + :WhiteSpace
+grammar[:Delimiter] = "\"" + "[" + "]" + "(" + ")" + :WhiteSpace
 
 # Booleans
 grammar[:Boolean] = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
@@ -112,9 +113,43 @@ grammar[:Symbol] = c((p(1) - :Delimiter) ^ 1) / symbol -> Symbol(symbol)
 nativeTypes[typename(Symbol)] = :Symbol
 evaluators[:Symbol] = (symbol, env) -> getVar(env, symbol)
 serializers[:Symbol] = symbol -> string(symbol)
+# Application
+grammar[:Application] = "(" * ca(p(:Expression) ^ 1) * ")" / array -> Tuple(array)
+nativeTypes[typename(Tuple)] = :Application
+evaluators[:Application] = (app, env) -> length(app) > 1 ? apply(eval(app[1], env), app[2:end], env) : apply(eval(app[1], env), (), env)
+serializers[:Application] = app -> string("(", join(map(serialize, app), " "), ")")
+
+serializers[:PrimitiveFunction] = fun -> string(Symbol(fun))
+
 
 globalEnviroment = Environment(Dict(), nothing)
-globalEnviroment.vars[:a] = 1
-globalEnviroment.vars[:b] = 2
+
+function evalArgs(args, env::Environment)
+    map(item -> eval(item, env), args)
+end
+
+macro definePrimitiveFun(name, fun, inEnv::Environment = globalEnviroment)
+    return :(setVar!($inEnv, $name, function $(Symbol(string("primitive", name)))(args, env) $fun(evalArgs(args, env), env) end))
+end
+
+@definePrimitiveFun(:+, (args, env) -> length(args) > 0 ? foldl(+, args) : 0)
+@definePrimitiveFun(:-, (args, env) -> length(args) > 0 ? foldl(-, args) : 0)
+@definePrimitiveFun(:*, (args, env) -> length(args) > 0 ? foldl(*, args) : 1)
+@definePrimitiveFun(:/, (args, env) -> length(args) > 0 ? foldl(/, args) : 1)
+
+macro defSpecialForm(name, fun, inEnv::Environment = globalEnviroment)
+    return :(setVar!($inEnv, $name, function $(Symbol(string("special", name)))(args, env) $fun(args, env) end))
+end
+
+@defSpecialForm(:def, 
+function (args, env) 
+    if length(args) != 2
+        throw(error("def needs 2 arguments. The var and the value for the var"))
+    end
+    if typeof(args[1]) !== Symbol
+        throw(error("$(args[1]) is not a symbol"))
+    end
+    setVar!(env, args[1], eval(args[2], env))
+end)
     
 end
