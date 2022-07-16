@@ -132,10 +132,10 @@ macro definePrimitiveFun(name, fun, inEnv::Environment = globalEnviroment)
     return :(setVar!($inEnv, $name, function $(Symbol(string("primitive", name)))(args, env) $fun(evalArgs(args, env), env) end))
 end
 
-@definePrimitiveFun(:+, (args, env) -> length(args) > 0 ? foldl(+, args) : 0)
-@definePrimitiveFun(:-, (args, env) -> length(args) > 0 ? foldl(-, args) : 0)
-@definePrimitiveFun(:*, (args, env) -> length(args) > 0 ? foldl(*, args) : 1)
-@definePrimitiveFun(:/, (args, env) -> length(args) > 0 ? foldl(/, args) : 1)
+@definePrimitiveFun(:+, (args, env) -> foldl(+, args, init=0))
+@definePrimitiveFun(:-, (args, env) -> foldl(-, args, init=0))
+@definePrimitiveFun(:*, (args, env) -> foldl(*, args, init=0))
+@definePrimitiveFun(:/, (args, env) -> foldl(/, args, init=0))
 
 macro defSpecialForm(name, fun, inEnv::Environment = globalEnviroment)
     return :(setVar!($inEnv, $name, function $(Symbol(string("special", name)))(args, env) $fun(args, env) end))
