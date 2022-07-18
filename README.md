@@ -243,3 +243,7 @@ To make the if special form more useful we also introduce the following primitiv
 * `>`-> all given operands are greater then the operand before it
 * `>=` -> all given operands are greater or equal then the operand before it
 Because of the multiple dispatch of Julia they also should work on all data types we have so far.
+
+### 03.07 - Do Sequence Special From & Printing Functions
+The if special forms only support a single applicate form in their conditions with may not be enough and also anonymous functions that we will introduce next also need support for a sequence of applicate forms. Because of that we will now introduce the `do` special from that takes an arbitrary number of applicate forms and returns the result of the last one.
+For testing purposes of the `do` special from we also introduce the 2 primitive printing functions `print` and `println` that will print the given arguments in sequence. The `println` function will do the same as the `print` function but will have a print a line break after all the arguments are printed. Because the string representation of each data type may be different then when we print values like `String`s they will first get the print representation of all of their arguments and then print them. If there is no explicit print representation for a data type provided we use the string serialization representation for printing. 
