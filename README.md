@@ -25,6 +25,10 @@ Chapter's and Step's so far:
    - [03.01 - Type Directed Interpreter](#0301---type-directed-interpreter)
    - [03.02 - PEG Parser Dynamic Grammar Support](#0302---peg-parser-dynamic-grammar-support)
    - [03.03 - Arrays & Multiple PEG Captures](#0303---arrays--multiple-peg-captures)
+   - [03.04 - Environment & Symbols](#0304---environment---symbols)
+   - [03.05 - Primitive Functions & Special Forms](#0305---primitive-functions--special-forms)
+   - [03.06 - If Special Form & Comparison Functions](#0306---if-special-form--comparison-functions)
+   - [03.07 - Do Sequence Special From & Printing Functions](#0307---do-sequence-special-from--printing-functions)
 
 ## 01 - Skeleton Interpreter
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
@@ -204,20 +208,20 @@ grammar[:WhiteSpace] = (" " + "\t" + "\r" + "\n") ^ 0
 ```
 The array them self use the new array capture mechanism and should look something like that `grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]"` and evaluate each of their elements like that `evaluators[:Array] = (array, env) -> map(item -> eval(item, env), array)`. The rest should be self explaining.
 
-### 03.04 - Environment And Symbols
+### 03.04 - Environment & Symbols
 So far our types didn't need an environment to evaluate the values because they are self evaluating or only consists of self evaluating parts in the array case. That will change now with the introduction of symbols. A symbol is just a identifier for a value. The default evaluation of a symbol is that it will lookup the value of the symbol in the environment. The environment itself is just a key value store of symbols to values. With the twist that we can nest environments and their respective scopes that they represent. So if we don't find a key in the actual active environment we look in the surrounding environment for the value. And keep that going until we found the symbol or there are no more surrounding environments in which case we abort with an unbound variable error.
 
 Because we still have not introduced an applicate able form we just add the symbols `a = 1` and `b = 2` for testing the functionality. Also the contents of the while loop in the REPL is now surrounded by a `try/catch` block so that we catch any exception in the interpreter, print it and continue until the user exit it explicitly.
 
 The allowed characters for symbols are any character excluding the delimiters so far and the whitespace. Will later on more and more restricted depending on the actual syntax representation we choose for other forms. And if we ever choose to support also an infix syntax with operators then we need to exclude those or handle them differently.
 
-### 03.04 - Primitive Functions and Special Forms
+### 03.05 - Primitive Functions & Special Forms
 Now that we have symbols in place it's getting more interesting and we will implement primitive functions and special forms that get us to the functionality of a simple calculator. To do that we implement an applicate form that syntax wise looks like that `(operator operant1 ... operantN)`. The evaluator for it will evaluate the operator position, that can also be nested applicate forms and then apply that form with the arguments. For now they are represented just as immutable tuples which may change later on.
 With that in place we extend the environment with the 4 primitive operators `+`, `-`, `*` and `/` that can take an arbitrary number of arguments and evaluate like all primitive functions all their arguments before applying the primitive function. If they get 0 arguments we will return the neutral element for the operations. In the case of `+` and `-` that is `0` and in case of `*` and `/` that is 1. Now we can already calculate stuff and also notice because we use native arrays that are also a matrix representation in Julia we can also make some matrix calculations.
 We also introduce our first special form, special in the sense that it will not evaluate all their arguments before applying it. In our case that is the `def` form that takes 2 arguments. A symbol and value that will be placed into the actual environment.
 We also introduced 2 helper macros do define primitive and special forms. We did go for macros so that we can generate function code with names like `primitive:<name>` and `special:<name>` that will be used for printing the `PrimitiveFunction` type. Used simple functions before but the printing was then just the anonymous function name like `var#36` which isn't really helpful.
 
-### 03.05 - If Special Form & Comparison Functions
+### 03.06 - If Special Form & Comparison Functions
 We now introduce the if special form control flow construct and because we are using prefix notation we can minimize the syntactic overhead of the if then else branches compared to infix based languages. All the if forms also return the values from there respective branches. So a simple `if then` construct will look the following way and it will return the new `Nothing` type in case the condition don't meet:
 ```lisp
 (if condition thenBranch)
