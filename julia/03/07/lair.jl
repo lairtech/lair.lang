@@ -210,6 +210,7 @@ function ifForm(args, env)
     evalIf(args, env)
 end)
 
+<<<<<<< HEAD
 function evalDo(expr, env)
     if length(expr) == 1
         eval(expr[1], env)
@@ -227,4 +228,6 @@ function (expr, env)
     evalDo(expr, env)
 end)
 
+=======
+>>>>>>> 115bf0a52be4ba4db6b536d222aa08bab99626ea
 end
