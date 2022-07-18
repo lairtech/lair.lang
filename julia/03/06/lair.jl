@@ -24,7 +24,11 @@ function typeOf(expr::Function)
 end
 
 function typeOf(expr)
-    nativeTypes[typename(typeof(expr))]
+    if expr === Nothing
+        :Nothing
+    else
+        nativeTypes[typename(typeof(expr))]
+    end
 end
 
 evaluators = Dict()
@@ -79,7 +83,7 @@ end
 grammar = Dict()
 grammar[1] = :Expression
 grammar[:Expression] = :WhiteSpaces * (:Code + :Collection + :Atom) * :WhiteSpaces
-grammar[:Atom] = :Boolean + :Integer + :String + :Symbol
+grammar[:Atom] = :Boolean + :Integer + :String + :Nothing + :Symbol
 grammar[:Collection] = :Array
 grammar[:Code] = :Application
 
@@ -118,12 +122,18 @@ grammar[:Application] = "(" * ca(p(:Expression) ^ 1) * ")" / array -> Tuple(arra
 nativeTypes[typename(Tuple)] = :Application
 evaluators[:Application] = (app, env) -> length(app) > 1 ? apply(eval(app[1], env), app[2:end], env) : apply(eval(app[1], env), (), env)
 serializers[:Application] = app -> string("(", join(map(serialize, app), " "), ")")
-
+# Nothing
+grammar[:Nothing] = c(p("nothing")) / n -> Nothing
+nativeTypes[Nothing] = :Nothing
+evaluators[:Nothing] = (app, env) -> Nothing
+serializers[:Nothing] = n -> "nothing"
+# printing function for the primitive functions
 serializers[:PrimitiveFunction] = fun -> string(Symbol(fun))
 
 
 globalEnviroment = Environment(Dict(), nothing)
 
+# Primitive functions stuff
 function evalArgs(args, env::Environment)
     map(item -> eval(item, env), args)
 end
@@ -132,11 +142,33 @@ macro definePrimitiveFun(name, fun, inEnv::Environment = globalEnviroment)
     return :(setVar!($inEnv, $name, function $(Symbol(string("primitive", name)))(args, env) $fun(evalArgs(args, env), env) end))
 end
 
-@definePrimitiveFun(:+, (args, env) -> length(args) > 0 ? foldl(+, args) : 0)
-@definePrimitiveFun(:-, (args, env) -> length(args) > 0 ? foldl(-, args) : 0)
-@definePrimitiveFun(:*, (args, env) -> length(args) > 0 ? foldl(*, args) : 1)
-@definePrimitiveFun(:/, (args, env) -> length(args) > 0 ? foldl(/, args) : 1)
+# arithmetic primitive functions
+@definePrimitiveFun(:+, (args, env) -> foldl(+, args, init=0))
+@definePrimitiveFun(:-, (args, env) -> foldl(-, args, init=0))
+@definePrimitiveFun(:*, (args, env) -> foldl(*, args, init=1))
+@definePrimitiveFun(:/, (args, env) -> foldl(/, args, init=1))
 
+# primitive comparsion functions stuff
+function compareOperator(op, args)
+    if length(args) < 2
+        throw(error("'$(Symbol(op))' need at least 2 elements to compare"))
+    end
+    if length(args) == 2
+        return op(args[1], args[2])
+    elseif op(args[1], args[2])
+        return compareOperator(op, args[2:end])
+    else 
+        return false
+    end
+end
+
+@definePrimitiveFun(:(=), (args, env) -> compareOperator(==, args))
+@definePrimitiveFun(:(<=), (args, env) -> compareOperator(<=, args))
+@definePrimitiveFun(:(<), (args, env) -> compareOperator(<, args))
+@definePrimitiveFun(:(>=), (args, env) -> compareOperator(>=, args))
+@definePrimitiveFun(:(>), (args, env) -> compareOperator(>, args))
+
+# Special forms
 macro defSpecialForm(name, fun, inEnv::Environment = globalEnviroment)
     return :(setVar!($inEnv, $name, function $(Symbol(string("special", name)))(args, env) $fun(args, env) end))
 end
@@ -152,4 +184,30 @@ function (args, env)
     setVar!(env, args[1], eval(args[2], env))
 end)
     
+function evalIf(args, env)
+    if length(args) >= 2
+        condition = eval(args[1], env)
+        if typeOf(condition) !== :Boolean
+            throw(error("Condition '$(args[1])' don't evaluate to a boolean"))
+        end
+        if condition
+            return eval(args[2], env)
+        elseif length(args) - 2 == 0
+            return Nothing
+        else
+            return evalIf(args[3:end], env)
+        end
+    else
+        eval(args[1], env)
+    end
+end
+
+@defSpecialForm(:if,
+function ifForm(args, env)
+    if length(args) < 2
+        throw(error("if need at least 2 arguments"))
+    end
+    evalIf(args, env)
+end)
+
 end

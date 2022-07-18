@@ -216,3 +216,30 @@ Now that we have symbols in place it's getting more interesting and we will impl
 With that in place we extend the environment with the 4 primitive operators `+`, `-`, `*` and `/` that can take an arbitrary number of arguments and evaluate like all primitive functions all their arguments before applying the primitive function. If they get 0 arguments we will return the neutral element for the operations. In the case of `+` and `-` that is `0` and in case of `*` and `/` that is 1. Now we can already calculate stuff and also notice because we use native arrays that are also a matrix representation in Julia we can also make some matrix calculations.
 We also introduce our first special form, special in the sense that it will not evaluate all their arguments before applying it. In our case that is the `def` form that takes 2 arguments. A symbol and value that will be placed into the actual environment.
 We also introduced 2 helper macros do define primitive and special forms. We did go for macros so that we can generate function code with names like `primitive:<name>` and `special:<name>` that will be used for printing the `PrimitiveFunction` type. Used simple functions before but the printing was then just the anonymous function name like `var#36` which isn't really helpful.
+
+### 03.05 - If Special Form & Comparison Functions
+We now introduce the if special form control flow construct and because we are using prefix notation we can minimize the syntactic overhead of the if then else branches compared to infix based languages. All the if forms also return the values from there respective branches. So a simple `if then` construct will look the following way and it will return the new `Nothing` type in case the condition don't meet:
+```lisp
+(if condition thenBranch)
+```  
+The `if then else` construct will look the following way:
+```lisp
+(if condition thenBranch elseBranch)
+```
+And multiple `if then else if then ... else` construct can easily represented by a sequence of conditions and then branches in that way (the last else branch is then optional and if missing and it branches to it it will return `Nothing`):
+```lisp
+(if condition1 thenBranch1
+    condition2 thenBranch2
+    ...
+    conditionN thenBranchN
+    optionalElseBranch)
+```
+We also make sure that each evaluated condition evaluate to `true` or `false` an then take the `thenBranch` or `optionalElseBranch` pattern. The if special form construct need at least 2 parameters. 1 Condition and 1 then part and support arbitrary long condition and thenBranch pairs.
+
+To make the if special form more useful we also introduce the following primitive comparison functions:
+* `=` -> all given operands are equal
+* `<` -> all given operands are less then the operand before it
+* `<=` -> all given operands are less or equal then the operand before it
+* `>`-> all given operands are greater then the operand before it
+* `>=` -> all given operands are greater or equal then the operand before it
+Because of the multiple dispatch of Julia they also should work on all data types we have so far.
