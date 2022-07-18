@@ -55,6 +55,16 @@ function serialize(expr)
     end
 end
 
+printers = Dict()
+
+function printedRepresentation(expr)
+    if haskey(printers, typeOf(expr))
+        return printers[typeOf(expr)](expr)
+    else
+        return serialize(expr)
+    end
+end
+
 function print(expr)
     println(serialize(expr))
 end
@@ -107,6 +117,7 @@ grammar[:String] = "\"" * c((:StringEscapes + (1 - ("\"" + "\\"))) ^ 0) * "\"" #
 nativeTypes[typename(String)] = :String
 evaluators[:String] = (expr, env) -> expr
 serializers[:String] = expr -> "\"$expr\""
+printers[:String] = expr -> expr
 # Arrays
 grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]" 
 nativeTypes[typename(Array)] = :Array
@@ -168,6 +179,9 @@ end
 @definePrimitiveFun(:(>=), (args, env) -> compareOperator(>=, args))
 @definePrimitiveFun(:(>), (args, env) -> compareOperator(>, args))
 
+@definePrimitiveFun(:print, (args, env) -> Base.print(map(printedRepresentation, args)...))
+@definePrimitiveFun(:println, (args, env) -> Base.println(map(printedRepresentation, args)...))
+
 # Special forms
 macro defSpecialForm(name, fun, inEnv::Environment = globalEnviroment)
     return :(setVar!($inEnv, $name, function $(Symbol(string("special", name)))(args, env) $fun(args, env) end))
@@ -210,7 +224,6 @@ function ifForm(args, env)
     evalIf(args, env)
 end)
 
-<<<<<<< HEAD
 function evalDo(expr, env)
     if length(expr) == 1
         eval(expr[1], env)
@@ -228,6 +241,4 @@ function (expr, env)
     evalDo(expr, env)
 end)
 
-=======
->>>>>>> 115bf0a52be4ba4db6b536d222aa08bab99626ea
 end
