@@ -29,6 +29,7 @@ Chapter's and Step's so far:
    - [03.05 - Primitive Functions & Special Forms](#0305---primitive-functions--special-forms)
    - [03.06 - If Special Form & Comparison Functions](#0306---if-special-form--comparison-functions)
    - [03.07 - Do Sequence Special From & Printing Functions](#0307---do-sequence-special-from--printing-functions)
+   - [03.08 - Closures & Custom Data Type Support](#0308---closures--custom-data-type-support)
 
 ## 01 - Skeleton Interpreter
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
@@ -200,7 +201,8 @@ Then we introduce a helper function `resultCapture` to extract the capture resul
 The last thing to do is to warp the new stuff into the grammar including white space support. Now we let every thing be an expression and differentiate between atoms (primitive basic types) and collections. So the Grammar structure should look something like that:
 ```julia
 grammar[1] = :Expression
-grammar[:Expression] = :WhiteSpace * (:Collection + :Atom) * :WhiteSpace
+grammar[:Expression]
+ create mode 100644 julia/03/07/lair.jl= :WhiteSpace * (:Collection + :Atom) * :WhiteSpace
 grammar[:Atom] = :Boolean + :Integer + :String
 grammar[:Collection] = :Array
 
@@ -251,3 +253,5 @@ Because of the multiple dispatch of Julia they also should work on all data type
 ### 03.07 - Do Sequence Special From & Printing Functions
 The if special forms only support a single applicate form in their conditions with may not be enough and also anonymous functions that we will introduce next also need support for a sequence of applicate forms. Because of that we will now introduce the `do` special from that takes an arbitrary number of applicate forms and returns the result of the last one.
 For testing purposes of the `do` special from we also introduce the 2 primitive printing functions `print` and `println` that will print the given arguments in sequence. The `println` function will do the same as the `print` function but will have a print a line break after all the arguments are printed. Because the string representation of each data type may be different then when we print values like `String`s they will first get the print representation of all of their arguments and then print them. If there is no explicit print representation for a data type provided we use the string serialization representation for printing. 
+
+### 03.08 - Closures & Custom Data Type Support
