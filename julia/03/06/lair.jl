@@ -1,5 +1,9 @@
 module Lair
 
+using Pkg
+Pkg.add("FunctionalCollections")
+using FunctionalCollections
+
 include("peg.jl")
 include("environment.jl")
 
@@ -42,7 +46,7 @@ function apply(applicator, args, env)
     if typeOf(applicator) == :PrimitiveFunction
         applicator(args, env)
     else
-        apply(applicators[typeOf(applicator)], append!([applicator], args), env)
+        apply(applicators[typeOf(applicator)], append(PersistentVector{Any}([applicator]), args), env)
     end
 end
 
@@ -100,7 +104,7 @@ serializers[:Boolean] = expr -> expr ? "true" : "false"
 grammar[:Integer] = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> Base.parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
 nativeTypes[typename(Int64)] = :Integer
 evaluators[:Integer] = (expr, env) -> expr
-serializers[:Integer] = expr -> expr
+serializers[:Integer] = expr -> string(expr)
 # Strings
 grammar[:StringEscapes] = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" # all the escape pattern we support
 grammar[:String] = "\"" * c((:StringEscapes + (1 - ("\"" + "\\"))) ^ 0) * "\"" # match the escape pattern or any char except " or \ (so we only support the listed escape sequences)
@@ -118,8 +122,8 @@ nativeTypes[typename(Symbol)] = :Symbol
 evaluators[:Symbol] = (symbol, env) -> getVar(env, symbol)
 serializers[:Symbol] = symbol -> string(symbol)
 # Application
-grammar[:Application] = "(" * ca(p(:Expression) ^ 1) * ")" / array -> Tuple(array)
-nativeTypes[typename(Tuple)] = :Application
+grammar[:Application] = "(" * ca(p(:Expression) ^ 1) * ")" / array -> PersistentVector{Any}(array)
+nativeTypes[typename(PersistentVector)] = :Application
 evaluators[:Application] = (app, env) -> length(app) > 1 ? apply(eval(app[1], env), app[2:end], env) : apply(eval(app[1], env), (), env)
 serializers[:Application] = app -> string("(", join(map(serialize, app), " "), ")")
 # Nothing
@@ -144,9 +148,9 @@ end
 
 # arithmetic primitive functions
 @definePrimitiveFun(:+, (args, env) -> foldl(+, args, init=0))
-@definePrimitiveFun(:-, (args, env) -> foldl(-, args, init=0))
+@definePrimitiveFun(:-, (args, env) -> length(args) > 0 ? foldl(-, args) : 0)
 @definePrimitiveFun(:*, (args, env) -> foldl(*, args, init=1))
-@definePrimitiveFun(:/, (args, env) -> foldl(/, args, init=1))
+@definePrimitiveFun(:/, (args, env) -> length(args) > 0 ? foldl(/, args) : 1)
 
 # primitive comparsion functions stuff
 function compareOperator(op, args)

@@ -1,5 +1,9 @@
 module Lair
 
+using Pkg
+Pkg.add("FunctionalCollections")
+using FunctionalCollections
+
 include("peg.jl")
 include("environment.jl")
 
@@ -38,7 +42,7 @@ function apply(applicator, args, env)
     if typeOf(applicator) == :PrimitiveFunction
         applicator(args, env)
     else
-        apply(applicators[typeOf(applicator)], append!([applicator], args), env)
+        apply(applicators[typeOf(applicator)], append(PersistentVector{Any}([applicator]), args), env)
     end
 end
 
@@ -95,7 +99,7 @@ serializers[:Boolean] = expr -> expr ? "true" : "false"
 grammar[:Integer] = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> Base.parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
 nativeTypes[typename(Int64)] = :Integer
 evaluators[:Integer] = (expr, env) -> expr
-serializers[:Integer] = expr -> expr
+serializers[:Integer] = expr -> string(expr)
 # Strings
 grammar[:StringEscapes] = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" # all the escape pattern we support
 grammar[:String] = "\"" * c((:StringEscapes + (1 - ("\"" + "\\"))) ^ 0) * "\"" # match the escape pattern or any char except " or \ (so we only support the listed escape sequences)
