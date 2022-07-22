@@ -114,7 +114,7 @@ function repl(env::Environment = globalEnviroment)
         catch e
             Base.print("Error: ")
             showerror(stdout, e)
-            Base.println("") #println("Error: "  * sprint(showerror, e))
+            Base.println("")
         end
     end
 end
@@ -286,13 +286,5 @@ join(map(serialize, taggedClosure.value[:body])), ")")
 function (expr, env)
     TaggedType(types[:Closure], Dict(:args => expr[1], :body => expr[2:end], :env => env))
 end)
-
-expr = parse("(def fib (closure (n) (if (= n 0) 0 (= n 1) 1 (+ (fib (- n 1)) (fib (- n 2))))))")
-result  = eval(expr, globalEnviroment)
-print(result)
-expr = parse("(fib 23)") #, globalEnviroment)
-#append!((expr), [(2,)])
-@time result  = eval(expr, globalEnviroment)
-@time result  = eval(expr, globalEnviroment)
 
 end
