@@ -17,7 +17,7 @@ function setVar!(env::Environment, var::Symbol, value)
     env.vars[var] = value
 end
 
-function extendEnv(env::Environment, vars::Vector{Symbol}, values::Vector)
+function extendEnv(env::Environment, vars, values)
     if length(vars) != length(values)
         throw(error("Extending enviroment with uneven vars ($vars) and values($values)"))
     end

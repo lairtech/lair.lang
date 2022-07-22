@@ -165,7 +165,7 @@ function apply(applicator, args, env)
     if typeOf(applicator) == :PrimitiveFunction
         applicator(args, env)
     else
-        apply(applicators[typeOf(applicator)], append!([applicator], args), env)
+        apply(applicators[typeOf(applicator)], append(PersistentVector{Any}([applicator]), args), env)
     end
 end
 ```
@@ -201,8 +201,7 @@ Then we introduce a helper function `resultCapture` to extract the capture resul
 The last thing to do is to warp the new stuff into the grammar including white space support. Now we let every thing be an expression and differentiate between atoms (primitive basic types) and collections. So the Grammar structure should look something like that:
 ```julia
 grammar[1] = :Expression
-grammar[:Expression]
- create mode 100644 julia/03/07/lair.jl= :WhiteSpace * (:Collection + :Atom) * :WhiteSpace
+grammar[:Expression] = :WhiteSpace * (:Collection + :Atom) * :WhiteSpace
 grammar[:Atom] = :Boolean + :Integer + :String
 grammar[:Collection] = :Array
 
@@ -215,7 +214,7 @@ So far our types didn't need an environment to evaluate the values because they 
 
 Because we still have not introduced an applicate able form we just add the symbols `a = 1` and `b = 2` for testing the functionality. Also the contents of the while loop in the REPL is now surrounded by a `try/catch` block so that we catch any exception in the interpreter, print it and continue until the user exit it explicitly.
 
-The allowed characters for symbols are any character excluding the delimiters so far and the whitespace. Will later on more and more restricted depending on the actual syntax representation we choose for other forms. And if we ever choose to support also an infix syntax with operators then we need to exclude those or handle them differently.
+The allowed characters for symbols are any character excluding the delimiters so far and the whitespace. Will be restricted later on more and more depending on the actual syntax representation we choose for other forms. And if we ever choose to support also an infix syntax with operators then we need to exclude those or handle them differently.
 
 ### 03.05 - Primitive Functions & Special Forms
 Now that we have symbols in place it's getting more interesting and we will implement primitive functions and special forms that get us to the functionality of a simple calculator. To do that we implement an applicate form that syntax wise looks like that `(operator operant1 ... operantN)`. The evaluator for it will evaluate the operator position, that can also be nested applicate forms and then apply that form with the arguments. For now they are represented just as immutable tuples which may change later on.
@@ -255,3 +254,13 @@ The if special forms only support a single applicate form in their conditions wi
 For testing purposes of the `do` special from we also introduce the 2 primitive printing functions `print` and `println` that will print the given arguments in sequence. The `println` function will do the same as the `print` function but will have a print a line break after all the arguments are printed. Because the string representation of each data type may be different then when we print values like `String`s they will first get the print representation of all of their arguments and then print them. If there is no explicit print representation for a data type provided we use the string serialization representation for printing. 
 
 ### 03.08 - Closures & Custom Data Type Support
+Now it's getting interesting because we introduce user defined function that enclose their definition enviroment and are executed in this enviroment on a call. Also called a closure. But before we can do that we need some way to add non native data types to our parser. To do that we create a new type `DataType` that will hold the name, the fields of the type and the native type name it is a native type. We also create a type `TaggedValue` that will hold the data type and the actual value and tag all non native types. Oc course we need then also modifiy/extend our `typeOf` function to get the right type name for the new `TaggedValue` and it may be useful to define a new helper function `defType` to define types and fill the new `types` dictionary or the old `nativeTypes`. With that in place we replace the manual filling of the types dicts with a call to the new helper function.
+The new closure type has the fields `args` for their arguments names, `body` for the actual code that will be evaluated as do sequence and return their last value and the `env` that will hold the definition environment in with the body will be evaluated. The hole thing will be created to each new call to the special form `closure` and be tagged with the new `Closure` custom type. Because the Application already take care of of the evaluation we just need to define an applicator that extends the definition environment with the evaluated args and evaluate the body with it.
+After that we can now define our own functions. The fib functions may look something like that:
+```
+(def fib (closure (n) (if (= n 0) 0 (= n 1) 1 (+ (fib (- n 1)) (fib (- n 2))))))
+```
+And can be called like primitive functions:
+```
+(fib 20)
+```

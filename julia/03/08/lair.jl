@@ -1,5 +1,9 @@
 module Lair
 
+using Pkg
+Pkg.add("FunctionalCollections")
+using FunctionalCollections
+
 include("peg.jl")
 include("environment.jl")
 
@@ -17,7 +21,23 @@ function parse(input::String)
     capture
 end
 
+types = Dict()
 nativeTypes = Dict()
+
+struct DataType
+    name::Symbol
+    fields::Vector{Symbol}
+    nativeType::Union{Core.TypeName, Type{Nothing}, Nothing}
+end
+
+struct TaggedType
+    dataTypeTag::DataType
+    value::Dict
+end
+
+function typeOf(expr::TaggedType)
+    expr.dataTypeTag.name
+end
 
 function typeOf(expr::Function)
     :PrimitiveFunction
@@ -28,6 +48,13 @@ function typeOf(expr)
         :Nothing
     else
         nativeTypes[typename(typeof(expr))]
+    end
+end
+
+function defType(name::Symbol ; fields = [], nativeType = nothing)
+    types[name] = DataType(name, fields, nativeType)
+    if nativeType !== nothing
+        nativeTypes[nativeType] = name
     end
 end
 
@@ -42,7 +69,7 @@ function apply(applicator, args, env)
     if typeOf(applicator) == :PrimitiveFunction
         applicator(args, env)
     else
-        apply(applicators[typeOf(applicator)], append!([applicator], args), env)
+        apply(applicators[typeOf(applicator)], append(PersistentVector{Any}([applicator]), args), env)
     end
 end
 
@@ -85,7 +112,9 @@ function repl(env::Environment = globalEnviroment)
             result  = eval(expr, env)
             print(result)
         catch e
-            println("Error: "  * sprint(showerror, e))
+            Base.print("Error: ")
+            showerror(stdout, e)
+            Base.println("") #println("Error: "  * sprint(showerror, e))
         end
     end
 end
@@ -103,39 +132,39 @@ grammar[:Delimiter] = "\"" + "[" + "]" + "(" + ")" + :WhiteSpace
 
 # Booleans
 grammar[:Boolean] = c("true" + "false") / m -> m == "true" # matches either "true" or "false", caputre it and then transform it on match to boolean true or false
-nativeTypes[typename(Bool)] = :Boolean
+defType(:Boolean, nativeType = typename(Bool))
 evaluators[:Boolean] = (expr, env) -> expr
 serializers[:Boolean] = expr -> expr ? "true" : "false"
 # Integers
 grammar[:Integer] = c(("-" + "+") ^ -1 * range('0', '9') ^ 1) / i -> Base.parse(Int64, i) # matches an chars in between 0-9 with one leading '-' or '+' and convert that to an Integer
-nativeTypes[typename(Int64)] = :Integer
+defType(:Integer, nativeType = typename(Int64))
 evaluators[:Integer] = (expr, env) -> expr
-serializers[:Integer] = expr -> expr
+serializers[:Integer] = expr -> string(expr)
 # Strings
 grammar[:StringEscapes] = "\\\"" + "\\\\" + "\\n" + "\\r" + "\\t" # all the escape pattern we support
 grammar[:String] = "\"" * c((:StringEscapes + (1 - ("\"" + "\\"))) ^ 0) * "\"" # match the escape pattern or any char except " or \ (so we only support the listed escape sequences)
-nativeTypes[typename(String)] = :String
+defType(:String, nativeType = typename(String))
 evaluators[:String] = (expr, env) -> expr
 serializers[:String] = expr -> "\"$expr\""
 printers[:String] = expr -> expr
 # Arrays
-grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]" 
-nativeTypes[typename(Array)] = :Array
+grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]"
+defType(:Array, nativeType = typename(Array))
 evaluators[:Array] = (array, env) -> map(item -> eval(item, env), array)
 serializers[:Array] = array -> string("[", join(map(serialize, array), " "), "]")
 # Symbols
 grammar[:Symbol] = c((p(1) - :Delimiter) ^ 1) / symbol -> Symbol(symbol)
-nativeTypes[typename(Symbol)] = :Symbol
+defType(:Symbol, nativeType = typename(Symbol))
 evaluators[:Symbol] = (symbol, env) -> getVar(env, symbol)
 serializers[:Symbol] = symbol -> string(symbol)
 # Application
-grammar[:Application] = "(" * ca(p(:Expression) ^ 1) * ")" / array -> Tuple(array)
-nativeTypes[typename(Tuple)] = :Application
+grammar[:Application] = "(" * ca(p(:Expression) ^ 1) * ")" / array -> PersistentVector{Any}(array)
+defType(:Application, nativeType = typename(PersistentVector))
 evaluators[:Application] = (app, env) -> length(app) > 1 ? apply(eval(app[1], env), app[2:end], env) : apply(eval(app[1], env), (), env)
 serializers[:Application] = app -> string("(", join(map(serialize, app), " "), ")")
 # Nothing
 grammar[:Nothing] = c(p("nothing")) / n -> Nothing
-nativeTypes[Nothing] = :Nothing
+defType(:Nothing, nativeType = Nothing)
 evaluators[:Nothing] = (app, env) -> Nothing
 serializers[:Nothing] = n -> "nothing"
 # printing function for the primitive functions
@@ -155,9 +184,9 @@ end
 
 # arithmetic primitive functions
 @definePrimitiveFun(:+, (args, env) -> foldl(+, args, init=0))
-@definePrimitiveFun(:-, (args, env) -> foldl(-, args, init=0))
+@definePrimitiveFun(:-, (args, env) -> length(args) > 0 ? foldl(-, args) : 0)
 @definePrimitiveFun(:*, (args, env) -> foldl(*, args, init=1))
-@definePrimitiveFun(:/, (args, env) -> foldl(/, args, init=1))
+@definePrimitiveFun(:/, (args, env) -> length(args) > 0 ? foldl(/, args) : 1)
 
 # primitive comparsion functions stuff
 function compareOperator(op, args)
@@ -240,5 +269,30 @@ function (expr, env)
     end
     evalDo(expr, env)
 end)
+
+defType(:Closure, fields = [:args, :body, :env])
+applicators[:Closure] =
+function (args, env)
+    taggedClosure = args[1]
+    if length(args) > 1
+        evaluatedArgs = evalArgs(args[2:end], env)
+        env = extendEnv(env, taggedClosure.value[:args], evaluatedArgs)
+    end
+    evalDo(taggedClosure.value[:body], env)
+end
+serializers[:Closure] = (taggedClosure) -> string("(closure (", join(map(serialize, taggedClosure.value[:args]), " "), ") ",
+join(map(serialize, taggedClosure.value[:body])), ")") 
+@defSpecialForm(:closure,
+function (expr, env)
+    TaggedType(types[:Closure], Dict(:args => expr[1], :body => expr[2:end], :env => env))
+end)
+
+expr = parse("(def fib (closure (n) (if (= n 0) 0 (= n 1) 1 (+ (fib (- n 1)) (fib (- n 2))))))")
+result  = eval(expr, globalEnviroment)
+print(result)
+expr = parse("(fib 23)") #, globalEnviroment)
+#append!((expr), [(2,)])
+@time result  = eval(expr, globalEnviroment)
+@time result  = eval(expr, globalEnviroment)
 
 end
