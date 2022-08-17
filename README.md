@@ -30,6 +30,7 @@ Chapter's and Step's so far:
    - [03.06 - If Special Form & Comparison Functions](#0306---if-special-form--comparison-functions)
    - [03.07 - Do Sequence Special From & Printing Functions](#0307---do-sequence-special-from--printing-functions)
    - [03.08 - Closures & Custom Data Type Support](#0308---closures--custom-data-type-support)
+   - [03.09 - Generic Getter & Setter](#0309---generic-getter--setter)
 
 ## 01 - Skeleton Interpreter
 To get something simple up and running as fast as possible we will start with a interactive skeleton echo interpreter that just read a line from the input and just echo it back to the user. 
