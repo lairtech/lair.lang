@@ -264,3 +264,5 @@ And can be called like primitive functions:
 ```
 (fib 20)
 ```
+
+### 03.09 - Generic Getter & Setter
