@@ -119,6 +119,9 @@ function repl(env::Environment = globalEnviroment)
     end
 end
 
+getters = Dict()
+setters = Dict()
+
 grammar = Dict()
 grammar[1] = :Expression
 grammar[:Expression] = :WhiteSpaces * (:Code + :Collection + :Atom) * :WhiteSpaces
@@ -147,11 +150,14 @@ defType(:String, nativeType = typename(String))
 evaluators[:String] = (expr, env) -> expr
 serializers[:String] = expr -> "\"$expr\""
 printers[:String] = expr -> expr
+getters[:String] = (object, index) -> object[index]
 # Arrays
 grammar[:Array] = "[" * ca(p(:Expression) ^ 0) * "]"
 defType(:Array, nativeType = typename(Array))
 evaluators[:Array] = (array, env) -> map(item -> eval(item, env), array)
 serializers[:Array] = array -> string("[", join(map(serialize, array), " "), "]")
+getters[:Array] = (object, index) -> object[index]
+setters[:Array] = (object, index, value) -> object[index] = value
 # Symbols
 grammar[:Symbol] = c((p(1) - :Delimiter) ^ 1) / symbol -> Symbol(symbol)
 defType(:Symbol, nativeType = typename(Symbol))
@@ -287,4 +293,46 @@ function (expr, env)
     TaggedType(types[:Closure], Dict(:args => expr[1], :body => expr[2:end], :env => env))
 end)
 
+
+function getter(object, key)   
+    if key isa Array 
+        if length(key) > 1
+            return getter(getter(object, key[1]), key[2:end])
+        else
+            return getter(object, key[1])
+        end
+    end
+    return getters[typeOf(object)](object, key)
 end
+
+@defSpecialForm(:get,
+function (expr, env)
+    if length(expr) != 2
+        throw(error("get takes 2 arguments"))
+    end
+    object = eval(expr[1], env)
+    getter(object, expr[2])
+end)
+
+function setter(object, key, value)
+    if key isa Array
+        if length(key) > 1
+            return setter(getter(object, key[1:end-1]), key[end:end], value)
+        else
+            return setter(object, key[1], value)
+        end
+    end
+    return setters[typeOf(object)](object, key, value)
+end
+
+@defSpecialForm(:set!,
+function (expr, env)
+    if length(expr) != 3
+        throw(error("set! takes 3 arguments"))
+    end
+    object = eval(expr[1], env)
+    value = eval(expr[3], env)
+    setter(object, expr[2], value)
+end)
+
+end # module Lair 

@@ -258,12 +258,23 @@ For testing purposes of the `do` special from we also introduce the 2 primitive 
 Now it's getting interesting because we introduce user defined function that enclose their definition enviroment and are executed in this enviroment on a call. Also called a closure. But before we can do that we need some way to add non native data types to our parser. To do that we create a new type `DataType` that will hold the name, the fields of the type and the native type name it is a native type. We also create a type `TaggedValue` that will hold the data type and the actual value and tag all non native types. Oc course we need then also modifiy/extend our `typeOf` function to get the right type name for the new `TaggedValue` and it may be useful to define a new helper function `defType` to define types and fill the new `types` dictionary or the old `nativeTypes`. With that in place we replace the manual filling of the types dicts with a call to the new helper function.
 The new closure type has the fields `args` for their arguments names, `body` for the actual code that will be evaluated as do sequence and return their last value and the `env` that will hold the definition environment in with the body will be evaluated. The hole thing will be created to each new call to the special form `closure` and be tagged with the new `Closure` custom type. Because the Application already take care of of the evaluation we just need to define an applicator that extends the definition environment with the evaluated args and evaluate the body with it.
 After that we can now define our own functions. The fib functions may look something like that:
-```
+```lisp
 (def fib (closure (n) (if (= n 0) 0 (= n 1) 1 (+ (fib (- n 1)) (fib (- n 2))))))
 ```
 And can be called like primitive functions:
-```
+```lisp
 (fib 20)
 ```
 
 ### 03.09 - Generic Getter & Setter
+So far we can write simple programs but basically only with non composed datatypes because we don't have a way to access the subelements. Let's fix that with 2 generic special forms for setters and getters:
+```lisp
+(get object key)
+(get object [key1 key2 ... keyN])
+```
+```lisp
+(set! object key value)
+(set! object [key1 key2 ... keyN] value)
+```
+The first special forms of the getter and setter let us access the elements of the object itself. The second special forms are for accessing the subelements in order of the keys given in the list.
+They are special forms because the key(s) will not be evaluated. Partly because that makes the synatx nicer and also because we don't have a way to quote symbols so far.
