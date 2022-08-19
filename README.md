@@ -278,3 +278,5 @@ So far we can write simple programs but basically only with non composed datatyp
 ```
 The first special forms of the getter and setter let us access the elements of the object itself. The second special forms are for accessing the subelements in order of the keys given in the list.
 They are special forms because the key(s) will not be evaluated. Partly because that makes the synatx nicer and also because we don't have a way to quote symbols so far.
+
+We also define a `getters` and `setters` dictionary with will hold a function for each type that will support a getters and setters and dispatch it similiar to the eval, apply, print etc. functions.
